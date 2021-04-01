@@ -1,0 +1,33 @@
+% Set page layout
+\ifthenelse{\equal{\Degree}{undergraduate}}
+{
+    \geometry{
+        a4paper,
+        marginpar=0pt,
+        includeheadfoot,
+        vmargin={1in,    1in   },
+        hmargin={1.25in, 1.25in},
+        headsep=4mm
+    }
+}
+{
+    \geometry{
+        a4paper,
+        marginpar=0pt,
+        includeheadfoot,
+        vmargin={1.5cm, 1.75cm},
+        hmargin={2.8cm, 2.8cm},
+        headsep=0.4cm,
+        textheight=24.62cm %29.7-2.54*2
+    }
+}
+% {
+%     \geometry{
+%         a4paper,
+%         marginpar=0pt,
+%         includeheadfoot,
+%         vmargin={2.54cm, 2.54cm},
+%         hmargin={2.5cm, 2.5cm},
+%         headsep=4mm
+%     }
+% }
