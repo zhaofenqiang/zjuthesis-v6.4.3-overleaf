@@ -2,7 +2,7 @@
 
 现代医学成像技术为人类探索自己的大脑提供了一个前所未有的非侵入式的观察与研究的机会。这些成像技术包括数字X射线摄影（Digital Radiography, DR）、X 射线计算机断层成像（X-Ray Computer Tomography, CT）、超声成像（Ultrasonic Imaging, UI）、正电子发射型计算机断层成像（Positron Emission Tomography, PET）、磁共振成像（Magnetic Resonance Imaging, MRI）等\cite{picano2004sustainability}。在这些技术中，MRI由于其较高的图像分辨率，对于组织中水含量变化的敏感性，因此带来的较强的软组织分辨能力以及无放射性危害等特点，被广泛地应用于人类大脑结构成像（structural MRI, sMRI）与功能成像（functional MRI, fMRI）\cite{giedd1999brain}，由此得到的清晰的大脑结构图像与功能图像不仅可以测量评价大脑的很多生理指标，例如灰质体积、白质体积、皮层厚度、大脑不同区域的功能连接等，还可以进一步推导相应的功能认知过程\cite{poldrack2006can}。因此，在最近几十年中，MRI被越来越多地用来研究神经系统发育，例如人类脑连接计划（Human Connectome Project, HCP）\cite{van2013wu}、婴儿脑连接计划（Baby Connectome Project, BCP）\cite{howell2019unc}、发育脑连接发育计划（developing  Human Connectome  Project,  dHCP）\cite{makropoulos2018developing}等，以及用来诊断神经系统疾病，例如阿尔茨海默病（Alzheimer's Disease, AD）\cite{mueller2005alzheimer}、帕金森病（Parkinson's Disease, PD）\cite{brooks2003assessment}、自闭症\cite{anagnostou2011review}等。
 
-经过几十年的发展，处理与分析这些大脑MRI数据已经形成了一个完整成熟的流程（pipeline）\cite{glasser2013minimal,li2019computational}。一般来讲，大脑sMRI数据处理流程（Structure MR images processing pipeline）主要包含两部分：（1）基于脑体积的分析（Volume-based Analysis），（2）基于脑皮层表面的分析（Surface-based Analysis），如图\ref{fig:flowchart_of_MRI_process_pipeline}所示。其中基于脑体积的分析一般指基于2D/3D的大脑MR图像的影像定量分析，提供大脑相关生理指标，例如形状、大小、体积以及纹理特征等。随后利用机器学习技术探索并分析这些特征，为诊断、预后或预测提供有价值的信息，从而开发诊断、预测或大脑发育的模型。基于大脑皮层表面的分析则更好地利用了大脑皮层的2D拓扑属性，提供了更精准、更方便的大脑映射与绘制的工具，从而更好地捕捉动态复杂的皮层相关的神经生物学变化。MRI数据处理的pipeline在过去十几年中与两种分析方法不断发展，相互结合，相互帮助，为我们更好地理解大脑发育、诊断与治疗神经系统性疾病提供了更好的工具与手段，也为神经影像学、脑科学和生命科学带来了新的发展机遇以及很多新的发现。例如，基于大脑体积的分析让我们认识到阿尔茨海默病的大脑灰质明显萎缩，随时间从颞叶扩散到额叶和枕叶大脑区域\cite{thompson2003dynamics}，为AD的临床诊断提供了可靠的支持。基于大脑皮层表面的分析在婴幼儿的大脑发育中揭示了很多早期脑发育的奥秘\cite{li2019computational,wang2019developmental,duan2019exploring}。
+经过几十年的发展，处理与分析这些大脑MRI数据已经形成了一个完整成熟的流程（pipeline）\cite{glasser2013minimal,li2019computational}。一般来讲，大脑sMRI数据处理流程（Structure MR images processing pipeline）主要包含两部分：（1）基于脑体积的分析（Volume-based Analysis），（2）基于脑皮层表面的分析（Surface-based Analysis），如图\ref{fig:flowchart_of_MRI_process_pipeline}所示。其中基于脑体积的分析一般指基于2D/3D的大脑MR图像的影像定量分析，提供大脑相关生理指标，例如形状、大小、体积以及纹理特征等。随后利用机器学习技术探索并分析这些特征，为诊断、预后或预测提供有价值的信息，从而开发诊断、预测或大脑发育的模型。基于大脑皮层表面的分析则更好地利用了大脑皮层的2D拓扑属性，提供了更精准、更方便的大脑映射与绘制的工具，从而更好地捕捉动态复杂的皮层相关的神经生物学变化。MRI数据处理pipeline中的这两种方法在过去十几年中不断发展，相互结合，相互帮助，为我们理解大脑发育、诊断与治疗神经系统性疾病提供了更好的工具与手段，也为神经影像学、脑科学和生命科学带来了新的发展机遇以及很多新的发现。例如，基于大脑体积的分析让我们认识到阿尔茨海默病的大脑灰质明显萎缩，随时间从颞叶扩散到额叶和枕叶大脑区域\cite{thompson2003dynamics}，为AD的临床诊断提供了可靠的支持。基于大脑皮层表面的分析在婴幼儿的大脑发育中揭示了很多早期脑发育的奥秘\cite{li2019computational,wang2019developmental,duan2019exploring}。
 
 \begin{figure}[t]
     \centering
@@ -10,9 +10,9 @@
     \caption{\label{fig:flowchart_of_MRI_process_pipeline}典型的结构MR图像处理流程。其中橙色标记的基于脑皮层表面的数据处理与分析即是本论文所要研究的内容。}
 \end{figure}
 
-近几年来，得益于高计算力的计算机显卡（GPU）以及卷积神经网络（Convolutional Neural Network, CNN）的强大学习与计算能力，深度学习技术\cite{goodfellow2016deep}在医学图像处理领域的应用也越来越多，表现出了非常优越的性能\cite{shen2017deep,litjens2017survey}。深度学习是人工智能技术的一个重要分支，目前我们已经可以借助GPU的算力训练带有大量参数的深层网络了。通过合适的训练方法，可以得到一个合适的CNN模型拟合大多数计算机视觉领域的任务，例如分类、检测、语音识别等，这得益于卷积计算对图像的高级特征提取的能力，因此CNN在图像处理中已经全面优于各种传统的特征提取方法，在很多领域都取得了非常好的结果。在大脑MRI数据处理pipeline中，很多深度学习技术也被用到了基于脑体积的分析中\cite{li2019computational}。这些基于脑体积的分析方法都显著提高了大脑MRI数据处理pipeline的效率、准确率以及自动化率，使得大规模多中心的脑影像数据分析成为可能。但是，另一方面，基于脑皮层的分析大多还使用传统的机器学习与计算方法，甚至时常还需要人工专家的介入，深度学习方法依然很少见或不实用。这使得基于脑皮层的处理与分析成为了拖累整个大脑MRI数据处理pipeline中的短板部分。
+近几年来，得益于高计算力的计算机显卡（GPU）以及卷积神经网络（Convolutional Neural Network, CNN）的强大学习与计算能力，深度学习技术\cite{goodfellow2016deep}在很多领域都取得了非常好的结果。这得益于卷积计算的优秀的图像特征提取能力，因此我们可以通过合适的训练方法，得到一个合适的CNN模型拟合大多数计算机视觉或医学图像处理领域中的任务，例如分类、分割、检测、目标追踪等。目前，CNN在图像处理中已经全面优于各种传统的特征提取加上机器学习的方法，在医学图像处理领域的应用也越来越多，表现出了非常优越的性能\cite{shen2017deep,litjens2017survey}。在大脑MRI数据处理pipeline中，很多深度学习技术也被用到了基于脑体积的分析中\cite{li2019computational}。这些基于脑体积的分析方法都显著提高了大脑MRI数据处理pipeline的效率、准确率以及自动化率，使得大规模多中心的脑影像数据分析成为可能。但是，另一方面，基于脑皮层的分析大多还使用传统的机器学习与计算方法，甚至时常还需要人工专家的介入，深度学习方法依然很少见或不实用。这使得基于脑皮层的处理与分析成为了拖累整个大脑MRI数据处理pipeline的短板部分。
 
-因此，为了解决这个问题，我们在这篇论文中将主要探讨怎样将深度学习技术更好、更方便、更准确地应用到大脑皮层表面数据的处理与分析上，希望能借助深度学习的力量推动神经影像学在皮层分析方向上的进步与发展。为了对上述所提及的大脑结构MR图像处理流程与基于脑皮层的数据处理与分析有一个更加全面与直观的了解，我们将在下一节详细介绍他们的背景、意义与研究现状。
+因此，为了解决这个问题，我们在这篇论文中将主要探讨怎样将深度学习技术更方便、更准确地应用到大脑皮层表面数据的处理与分析上，希望能够借助深度学习的力量推动神经影像学研究在大脑皮层分析方向上的进步与发展。为了对上述所提及的大脑结构MR图像处理流程与基于脑皮层的数据处理与分析有一个更加全面与直观的了解，我们将在下一节详细介绍他们的背景、意义与研究现状。
 
 
 \begin{figure}[t]
@@ -23,7 +23,7 @@
 
 
 \section{大脑皮层表面的重建及其意义}
-正如在图\ref{fig:flowchart_of_MRI_process_pipeline}中所展示的那样，MRI数据从图像到大脑皮层表面的重建有一套完整的步骤。图\ref{fig:flowchart_of_surface_based_analysis}展示了一个更直观更完整的基于脑皮层的处理与分析流程，主要分为三个阶段，（1）MR图像预处理，包括头动校正，头骨、小脑及脑干的去除，灰度不均匀校正，图像配准，灰质、白质及脑脊液的组织分割；（2）皮层表面重建，包括给非皮层结构施加掩模并进行填充，大脑左右半球分离，拓扑错误校正，皮层内表面重建，皮层外表面重建，以及皮层表面各种特征的计算；（3）基于皮层表面的处理与分析，包括球面映射，球面配准，感兴趣区域（Region of Interest, ROI）的分区，皮层表面重采样及各种皮层特征的重采样。这一小节我们将详细地介绍如何进行这每一步的操作来得到最终重建好的大脑皮层表面，并在下面几个小节介绍后续的基于皮层表面的处理与分析，也正是我们这篇论文所要探讨与研究的内容。
+正如在图\ref{fig:flowchart_of_MRI_process_pipeline}中所展示的那样，MRI数据从图像到大脑皮层表面的重建有一套完整的流程。图\ref{fig:flowchart_of_surface_based_analysis}展示了一个更加直观完整的基于脑皮层的处理与分析流程，主要分为三个阶段，（1）MR图像预处理，包括头动校正，头骨、小脑及脑干的去除，灰度不均匀校正，图像配准，灰质、白质及脑脊液的组织分割；（2）皮层表面重建，包括给非皮层结构施加掩模并进行填充，大脑左右半球分离，拓扑错误校正，皮层内表面重建，皮层外表面重建，以及皮层表面各种特征的计算；（3）基于皮层表面的处理与分析，包括球面映射，球面配准，感兴趣区域（Region of Interest, ROI）的分区，皮层表面重采样及各种皮层特征的重采样。这一小节我们将详细地介绍如何进行这每一步的操作来得到最终重建好的大脑皮层表面，并在下面几个小节介绍后续的基于皮层表面的处理与分析。
 
 \subsection{MR图像预处理}\label{sec:MR图像预处理}
 要采集到高质量的MR图像，第一步要做的就是头动校正\cite{zaitsev2015motion}。由于人体在采集过程中的不规则运动，MR图像很容易出现运动伪影，如重影、模糊、对比度变化或信号间隙等。为了减少运动伪影，目前最常用的有先进的回顾性的\cite{atkinson1999automatic}，前瞻性的\cite{zaitsev2006magnetic}及混合的\cite{aksoy2012hybrid}等扫描技术。
@@ -34,11 +34,11 @@
 
 第四步，图像配准\cite{sotiras2013deformable}。配准是指将每个个体的图像映射到一个公共的模板空间，从而使不同个体的同一个大脑位置一一对应起来。医学图像配准最经典的方法有fsl的FLIRT\cite{jenkinson2001global,jenkinson2002improved}，FreeSurfer\cite{fischl2012freesurfer}，ANTs（Advanced Normalization Tools）的SyN\cite{avants2008symmetric}，以及最近几年基于深度学习的无监督网络\cite{dalca2018unsupervised,balakrishnan2018unsupervised,niethammer2019metric,de2019deep}等。
 
-第五步，组织分割，旨在将大脑MR图像分割成三种不同的组织类型，即灰质（Gray Matter, GM）、白质（White Matter, WM）与脑脊液（Cerebrospinal Fluid, CSF）。这一步是定量研究大脑神经系统发育与病变的重要步骤。有很多成熟的工具软件可以直接用于成人大脑的分割，如FSL\cite{jenkinson2012fsl}、FreeSurfer\cite{fischl2012freesurfer}、SPM\cite{tzourio2002automated}和BrainSuite\cite{shattuck2002brainsuite}。由于婴儿大脑MR图像的灰度与对比度比成人脑图像的低地多，研究人员需要开发专门针对婴儿脑图像的分割算法\cite{li2019computational}。现在主流的婴儿脑MR图像的分割方法有：（1）基于预分割模板的方法，根据模板的构建方式不同，可以分为基于人群的模板（Population Atlas）的分割方法\cite{shi2011infant,wang2014segmentation}和基于个体的模板（Subject-specific Atlas）的分割方法\cite{shi2010neonatal}；（2）基于学习的分割方法，依据所用特征来源又可以分为基于手工构建特征(Hand-crafted Features)的学习方法\cite{anbeek2013automatic,wang2015links}和基于深度学习的自动学习特征的方法\cite{wang2018volume,nie2016fully,zhang2015deep}。Zhang等人\cite{zhang2015deep}首先提出了基于深层CNN的多模态婴幼儿大脑图像分割算法。Wang等人\cite{wang2018volume}提出了基于CNN的解剖信息指导的密集连接U-Net\cite{ronneberger2015u}（Anatomy-Guided Densely-Connected U-Net, ADU-Net）\cite{wang2018volume}来更加精准地分割婴幼儿大脑的GM、WM和CSF；（3）混合方法，即将多种策略整合在一起的分割就框架\cite{beare2016neonatal,gui2012morphology}。
+第五步，组织分割，旨在将大脑MR图像分割成三种不同的组织类型，即灰质（Gray Matter, GM）、白质（White Matter, WM）与脑脊液（Cerebrospinal Fluid, CSF）。这一步是定量研究大脑神经系统发育与病变的重要步骤。有很多成熟的工具软件可以直接用于成人大脑的分割，如FSL\cite{jenkinson2012fsl}、FreeSurfer\cite{fischl2012freesurfer}、SPM\cite{tzourio2002automated}和BrainSuite\cite{shattuck2002brainsuite}。由于婴儿大脑MR图像的灰度与对比度比成人脑图像的低很多，研究人员需要开发专门针对婴儿脑图像的分割算法\cite{li2019computational}。现在主流的婴儿脑MR图像的分割方法有：（1）基于预分割模板的方法，根据模板的构建方式不同，可以分为基于人群的模板（Population Atlas）的分割方法\cite{shi2011infant,wang2014segmentation}和基于个体的模板（Subject-specific Atlas）的分割方法\cite{shi2010neonatal}；（2）基于学习的分割方法，依据所用特征来源又可以分为基于手工特征(Hand-crafted Features)的学习方法\cite{anbeek2013automatic,wang2015links}和基于深度学习的自动学习特征的方法\cite{wang2018volume,nie2016fully,zhang2015deep}。Zhang等人\cite{zhang2015deep}首先提出了基于深层CNN的多模态婴幼儿大脑图像分割算法。Wang等人\cite{wang2018volume}提出了基于CNN的解剖信息指导的密集连接U-Net\cite{ronneberger2015u}（Anatomy-Guided Densely-Connected U-Net, ADU-Net）\cite{wang2018volume}来更加精准地分割婴幼儿大脑的GM、WM和CSF；（3）混合方法，即将多种策略整合在一起的分割就框架\cite{beare2016neonatal,gui2012morphology}。
 
 
 \subsection{大脑皮层表面重建流程}
-大脑皮层表面是基于脑组织分割图，即WM、GM、CSF三种组织的分割图像，重建而成。它是整个脑皮层分析的基础。只有准确地重建好了三维的脑皮层表面，才可以进行后续的基于皮层表面的分析。具体来讲，它包含了五个步骤。
+大脑皮层表面是基于脑组织分割图，即WM、GM、CSF三种组织的分割图像，重建而成。它是整个脑皮层分析的基础。只有准确地重建好了三维的脑皮层表面，才可以进行后续的基于皮层表面的分析。具体来讲，它包含以下五个步骤。
 
 第一步，将非皮层结构自动遮盖并填充起来，然后将每个MR图像分为左半球和右半球进行单独处理\cite{li2012consistent}。
 
@@ -46,9 +46,9 @@
 
 第三步，将皮层内表面（Inner Surface），即灰质与白质的交界面，通过经典的移动立方体（Marching Cube, MC）方法\cite{lorensen1987marching}进行重建，然后再通过可形变表面算法对重建结果进行细化，得到的皮层内表面。
 
-第四步，通过将皮层内表面向外进行膨胀，且保持初始的拓扑结构及空间连续平滑性，来重建皮层外表面（Outer Surface），即灰质与脑脊液的交界面。为防止皮层表面的网格发生交叉，在进行每一步表面形变时都会在每一个顶点（Vertex）的局部邻域内执行一次快速的三角形交叉检测算法。一旦在某位置检测到三角形网格交叉，形变就会变小到没有交叉点的位置。
+第四步，通过将皮层内表面向外进行膨胀，且保持初始的拓扑结构及空间连续平滑性，来重建皮层外表面（Outer Surface），即灰质与脑脊液的交界面。为防止皮层表面的网格发生交叉，在进行每一步表面形变时都会在每一个顶点（vertex）的局部邻域内执行一次快速的三角形交叉检测算法。一旦在某位置检测到三角形网格交叉，形变就会变小到没有交叉点的位置。
 
-最后，将皮层表面分为不同的ROI并计算皮层表面有意义的形态学属性特征，例如，每个顶点的皮层厚度（Cortical Thickness, CT）、脑沟深度，表面曲率等\cite{li2014mapping}。
+最后，将皮层表面分为不同的ROI并计算皮层表面有意义的形态学属性特征，例如，每个顶点的皮层厚度（cortical thickness）、脑沟深度，表面曲率等\cite{li2014mapping}。
 
 重建好的皮层表面在绘制分析脑结构、功能和脑连接图谱中起着重要的作用。与基于脑体积的分析相比，基于脑皮层的分析具有以下优势：（1）保持了皮层的拓扑特性；（2）便于对高度折叠的皮层区域进行配准、分析和可视化；（3）可以精确度量皮层的多种生物学特性，如皮层厚度、表面积、皮层折叠、髓鞘含量和皮层扩散性等。因此，基于皮层表面的分析非常适合捕捉大脑早期发育过程中动态复杂的神经生物学变化。
 
@@ -59,9 +59,9 @@
 \subsection{大脑皮层表面配准}\label{sec:大脑皮层表面配准}
 大脑皮层配准的目的是将不同个体的解剖或功能区域一一对应起来。这是基于脑皮层表面分析的一个基本步骤，对于不同群体的横向和纵向神经影像学研究具有十分重要的意义。为了让这一过程更加简单方便，过去几十年中研究人员一直都先利用皮层表面固有的球形拓扑结构，使用一个最小三角形面积和角度畸变的策略将皮层表面膨胀映射到球体上\cite{fischl1999cortical,fischl1999high}，然后再基于球面表示的大脑皮层进行球面配准\cite{yeo2009spherical,robinson2014msm}。驱动球面配准的特征也会被首先映射到其对应的球面顶点上，然后球面配准算法会计算了一个平滑的球面变形场，对每一个顶点进行移动，以建立不同表面之间的顶点对应关系，使得两个球面在配准完成后尽可能地相似。注意这个变形场还要同时确保球面上没有三角形网格发生交叉\cite{moller1997fast}。
 
-常见的皮层配准方法，FreeSurfer\cite{fischl1999high}，通过使用梯度下降法最小化个体和模板之间的几何特征之间的欧式距离，计算出所有顶点的密集变形场。球面Demons算法（Spherical Demons）\cite{yeo2009spherical}采用与FreeSurfer相同的距离度量方法，但使用Demons算法\cite{vercauteren2009diffeomorphic}贪婪地步进式地利用高斯牛顿法（Gauss-Newton method）来求解切平面空间中的局部最优位移向量。由于高斯牛顿法收敛速度快，而且Spherical Demons有效地将欧氏空间的微分同胚的（diffeomorphic）变形场扩展到了球面空间，Spherical Demons成为了一个很快的且能够保证拓扑结构的实用配准算法。
+一个常用的皮层表面配准方法，FreeSurfer\cite{fischl1999high}，通过使用梯度下降法最小化个体和模板之间的几何特征之间的欧式距离，计算出所有顶点的密集变形场。球面Demons算法（Spherical Demons）\cite{yeo2009spherical}采用与FreeSurfer相同的距离度量方法，但使用Demons算法\cite{vercauteren2009diffeomorphic}贪婪地步进式地利用高斯牛顿法（Gauss-Newton method）来求解切平面空间中的局部最优位移向量。由于高斯牛顿法收敛速度快，而且Spherical Demons有效地将欧氏空间的微分同胚的（diffeomorphic）变形场扩展到了球面空间，Spherical Demons成为了一个快速的且能够保证拓扑结构的实用配准算法，被广泛应用于目前各种神经影像学研究中。
 
-这些经典方法\cite{yeo2009spherical,fischl1999high,lyu2019hierarchical}最初是为对齐皮层形态学特征而开发的，因此建立的对应关系通常是基于皮层的几何特征（如曲率、凸度和脑沟深度等）来对齐皮层褶皱的。然而，另外一些研究表明\cite{robinson2014msm,coalson2018impact,glasser2016multi}，这种配准方式并不能保证得到最优的皮层功能区域的对应性，也就是说皮层褶皱和功能区域并不是高度重合的，因此一些专家提出使用功能特征（如髓鞘含量（myelin content）、功能连接（functional connectivity）\cite{conroy2013inter}和fMRI响应\cite{robinson2014msm}）来更精确地驱动皮层功能区域的配准。还有一些工作尝试将高维皮层光谱特征\cite{lombaert2013diffeomorphic}整合到皮层表面配准中。以上这些方法大多都是传统的基于特定的数学模型的方法，它们只能使用特定的计算流程来求解这个数学模型以得到球面变形场，因此它们都很难扩展到多维或高维特征。MSM（Multimodal Surface Matching）\cite{robinson2014msm}首次提出将大脑皮层配准问题建模为离散化标记问题来扩展到多模态特征，包括皮层结构、功能和连接特征等，从而在特征集和相似度指标的选择上提供了灵活性。然而，MSM的离散性带来了较高的计算负担，使其不容易保证球面变形场的拓扑不变性。MSM转而惩罚相邻顶点的旋转矩阵间的差异并限制其变形大小来避免出现三角形网络交叉，但这对于比较大的变形可能会提供次优解。
+这些经典方法\cite{yeo2009spherical,fischl1999high,lyu2019hierarchical}最初都是为了对齐皮层表面形态学特征而开发的，因此建立的对应关系通常是基于皮层的几何特征（如曲率、凸度和脑沟深度等）来对齐皮层褶皱的。然而，另外一些研究表明\cite{robinson2014msm,coalson2018impact,glasser2016multi}，这种配准方式并不能保证得到最优的皮层功能区域的对应性，也就是说皮层褶皱和功能区域并不是高度重合的，因此一些专家提出使用功能特征（如髓鞘含量（myelin content）、功能连接（functional connectivity）\cite{conroy2013inter}和fMRI响应\cite{robinson2014msm}）来更精确地驱动皮层功能区域的配准。还有一些工作尝试将高维皮层光谱特征\cite{lombaert2013diffeomorphic}整合到皮层表面配准中。然而，以上这些方法都是基于特定的数学模型的方法，它们只能使用特定的计算流程来求解这个数学模型得到球面变形场，因此它们都很难扩展到多维或高维特征。MSM（Multimodal Surface Matching）\cite{robinson2014msm}首次提出将大脑皮层配准问题建模为离散化标记问题来扩展到多模态特征，包括皮层结构、功能和连接特征等，从而在特征集和相似度指标的选择上提供了灵活性。然而，MSM的离散性带来了较高的计算负担，使其不容易保证球面变形场的拓扑不变性。MSM转而惩罚相邻顶点的旋转矩阵间的差异并限制其变形大小来避免出现三角形网络交叉，但这对于比较大的变形可能会提供次优解。
 
 如上所述，所产生的变形场将被用于移动球面上的每一个顶点，以建立不同皮层表面之间的对应关系。为了能够直接比较不同皮层的属性特征，将球面重采样为一个一致的拥有同样顶点数的球面是很有必要的。通常情况下，我们一般使用正二十面体的细分球面来进行重采样，因为它们最接近球并且拥有相对均匀的采样点\cite{fischl2012freesurfer}。为了保证皮层表面有足够的分辨率，一般都采用40962或163842个顶点的正二十面体分形体球面来进行重采样。
 
