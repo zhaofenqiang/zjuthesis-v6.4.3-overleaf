@@ -3,7 +3,7 @@
 
 \begin{center}
     \zihao{5}
-    \begin{longtable}{>{\raggedleft}p{0.18\textwidth}  p{0.79\textwidth}}
+    \begin{longtable}{>{\raggedleft}p{0.18\textwidth}  p{0.78\textwidth}}
             MRI   & Magnetic Resonance Imaging，磁共振成像技术或磁共振图像\\
             sMRI & Structural Magnetic Resonance Imaging，结构磁共振成像 \\
             fMRI & Functional Magnetic Resonance Imaging，功能磁共振成像 \\
@@ -21,15 +21,15 @@
             CycleGAN & Cycle-consistent Generative Adversarial Network，循环一致性生成对抗网络 \\
             S3Reg & Superfast Spherical Surface Registration，我们开发的超快球面配准算法，见\ref{sec:基于三个正交球面U-Net的配准框架}中的详细介绍 \\
             FreeSurfer & 一个流行的神经影像数据处理工具包，见\ref{sec:MR图像预处理}中的相关介绍 \\
-            Spherical Demons & 球面Demons算法，一个流行的球面皮层配准算法，见\ref{sec:大脑皮层表面配准}\\
-            MSM & Multimodal Surface Matching，另一个流行的球面皮层配准算法，见\ref{sec:大脑皮层表面配准} \\
+            Spherical Demons & 球面Demons算法，一个流行的皮层表面配准算法，见\ref{sec:大脑皮层表面配准}\\
+            MSM & Multimodal Surface Matching，另一个流行的皮层表面配准算法，见\ref{sec:大脑皮层表面配准} \\
             Manifold & 流形，本论文中主要讨论一种具体的流形空间中的实例，即大脑皮层表面 \\
             Diffeomorphism & 微分同胚，一种微分流形之间的可逆光滑映射，本论文中主要指光滑的球面变形场，详见\ref{sec:保证球面拓扑属性的变形场}的介绍 \\
-            $\phi$  & Spherical deformation field，球面变形场，用于配准球面脑皮层数据，见\ref{sec:基于三个正交球面U-Net的配准框架} \\
+            $\phi$  & Spherical deformation field，球面变形场，用于配准球面数据，见\ref{sec:基于三个正交球面U-Net的配准框架} \\
             $\overrightarrow{u}$ &  Stationary velocity field，球面上的静态速度场 \\
             $S^2$ & Sphere，一个普通的球面 \\
             $F$ & Fixed image/surface，配准中的固定图像/皮层表面，用来当作配准的模板 \\
-            Atlas & 图谱，又称为模板，或者参照物，常与$F$混用 \\
+            Atlas & 图谱，又称模板（template），或者参照物（reference），常与$F$混用 \\
             $M$ & Moving image/surface，需要进行配准的移动图像/皮层表面 \\
             $M\circ \phi$ & Moved image/surface，$M$在配准后得到的图像/皮层表面 \\
             ${\{v_n\}}_{n=1}^N$ & 有$N$个顶点的正二十面体离散化球面 \\
@@ -37,9 +37,8 @@
             $X$、$Y$ & 代表采集数据的扫描仪（scanner）、中心（center）或站点（site），详见\ref{sec:基于球面U-Net的多中心皮层属性数据结合方法} \\
             curv      &    Mean curvature，平均曲率，大脑皮层的一个几何形态学特征，详见\ref{sec:大脑皮层分区实验实验设计} \\
             sulc      & Average convexity，平均凸度，大脑皮层的一个几何形态学特征，详见\ref{sec:大脑皮层分区实验实验设计} \\
-            thickness & Cortical thickness，大脑皮层厚度  \\
             myelin   & Myelin content，髓鞘含量，大脑的一个功能特征，见\ref{sec:S3Reg的数据和预处理}的介绍 \\
-            FGD     & Functional Gradient Density，功能MRI图像导出的功能连接梯度密度特征，在\ref{sec:S3Reg的数据和预处理}中介绍到 \\
+            FGD     & Functional Gradient Density，功能MRI图像导出的功能连接梯度密度特征，在\ref{sec:S3Reg的数据和预处理}中有介绍到 \\
             ROI    &  Region of Interest，感兴趣区域 \\
             vertex-wise &  逐个顶点的操作 \\
             ROI-wise &  逐个ROI的操作 \\
@@ -48,11 +47,11 @@
             SGD  & Stochastic Gradient Descent，随机梯度下降法，一种流行的训练CNN的方法 \\
             epoch & 训练迭代次数，使用整个训练集完整地训练一次CNN叫作一个epoch \\
             batch size & 批处理量，SGD算法中每一次更新网络参数所使用的数据量   \\
+            Dropout & CNN中一种常用的接在特征提取层后的操作 \\
             MSD  & Mean Square Distance，均方差 \\
-            MAE & Mean AbsoluteError，平均绝对误差 \\
+            MAE & Mean Absolute Error，平均绝对误差 \\
             PCC  & Pearson Correlation Coefficient，皮尔逊相关系数 \\
             PSNR & Peak Signal-to-Noise Ratio，峰值信噪比 \\
-            Dropout & CNN中一种常用的接在特征提取层后的操作 \\
             PCA & Principal Component Analysis, 主成分分析法 \\
     \end{longtable}
 \end{center}
