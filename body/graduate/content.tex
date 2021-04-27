@@ -505,7 +505,12 @@ v_{n,i}'=\frac{v_{n,i}+E_{n,i}\overrightarrow{u_{n,i}}}{\Vert v_{n,i}+E_{n,i}\ov
 \section{本章小结}
 在本章中，我们提出了基于正二十面体离散化球面的1-ring卷积核，用来开发相应的球面运算以构建球面CNNs。1-ring卷积核具有自然且直观的定义，使得它可以很容易地被解释并成功进行球面上的模式识别。随后我们将传统的U-Net和可变形卷积/池化扩展到球面上，并通过部署相应的球面操作构建了SDU-Net。最后我们在两个挑战性的任务上，即皮层表面分区和皮层表面属性发育预测，进行了广泛大量的对比试验与研究，从定量和定性的角度都证实了SDU-Net的鲁棒性、效率和准确性，也证明了SDU-Net在计算上是高效的，在特征学习上是有效的，能够自动学习到有用的特征和自适应的感受域来出色地完成不同的任务。
 
-本章中球面U-Net的相关工作已在2019年的国际生物医学成像会议（The IEEE International Symposium on Biomedical Imaging, ISBI 2019）、第27届国际医学影像信息处理会议（The 27th international conference on Information Processing in Medical Imaging, IPMI 2019）上发表，并在2019年国际医学磁共振学会年会（2019 The International Society for Magnetic Resonance in Medicine Annual Meeting, ISMRM 2019）上做了海报展示。SDU-Net的相关工作在2021年元旦被IEEE Transactions on Medical Imaging录用，并在4月正式发表。
+\ifthenelse{\equal{\BlindReview}{true}}%
+        {
+        }
+        {
+        本章中球面U-Net的相关工作已在2019年的国际生物医学成像会议（The IEEE International Symposium on Biomedical Imaging, ISBI 2019）、第27届国际医学影像信息处理会议（The 27th international conference on Information Processing in Medical Imaging, IPMI 2019）上发表，并在2019年国际医学磁共振学会年会（2019 The International Society for Magnetic Resonance in Medicine Annual Meeting, ISMRM 2019）上做了口头报告。SDU-Net的相关工作在2021年元旦被IEEE Transactions on Medical Imaging录用，并在4月正式发表。
+        }
 
 
 
@@ -834,7 +839,13 @@ Dice(p_F^k, p_M^k \circ \phi) = 2 \frac{| p_F^k \cap (p_M^k \circ \phi)|}{|p_F^k
 \section{本章小结}
 在本章工作中，我们提出了一个基于深度学习方法的多功能大脑皮层配准框架S3Reg，用于球面空间上的快速灵活的皮层表面配准。我们的实验结果表明不需要金标准的球面变形场，只利用端到端无监督学习的特点，再结合3个互补的正交球面U-Net，便可以有效地解决球面配准上的极点变形问题。为了保证球面变形场的拓扑属性，我们开发了一个新的球面“缩放和平方”可微分层用于积分静态速度场以得到diffeomorphism的球面变形场。如结果中所示，我们的S3Reg可以灵活地结合来自结构和功能图像的多模态特征进行皮层表面配准。更重要的是，与最先进的非深度学习方法相比，S3Reg运行速度更快，同时还能达到更好的配准精度，使其更适合大规模神经影像数据分析。此外，我们的方法不受相似度指标和平滑度约束的选择影响，从而为球面配准提供了更多的选择和潜在的研究方向，也为其他亏格为0的器官和一些以球面数据为对象的计算机视觉任务提供了新方向。
 
-本章的部分工作已在2020年国际医学影像学机器学习会议（11th International Workshop on Machine Learning in Medical Imaging, MLMI 2020）上发表，后续整理扩充的期刊文章在2021年3月已被IEEE Transactions on Medical Imaging录用。
+\ifthenelse{\equal{\BlindReview}{true}}%
+        {
+        }
+        {
+        本章的部分工作已在2020年国际医学影像学机器学习会议（11th International Workshop on Machine Learning in Medical Imaging, MLMI 2020）上发表，后续整理扩充的期刊文章在2021年3月被IEEE Transactions on Medical Imaging录用。
+        }
+
 
 
 
@@ -984,7 +995,13 @@ atlas的分区图相匹配。这样一来，这个网络就实现了两个任务
 \section{本章小结}
 在本文中，我们提出了JRP-Net用于皮层表面的同时配准和分区，它们之间通过共享编码器和分区图相似度损失函数被紧密地关联起来。通过利用两个任务之间的内在关系，我们的共享编码器可以有效地提取两个任务共享的更有意义的皮层高级特征，而分区图相似性损失则进一步地实现了两个任务之间的相互帮助、指引与训练。所有的实验结果，包括定量的和定性的，都表明我们的方法在配准和分区方面都要比单独训练的配准或分区网络有很大的改进。这个改进对两个任务都具有非常重大的意义。
 
-本章的部分工作已经整理好并提交到了国际医学图像计算与计算机辅助诊断会议（International Conference on Medical Image Computing and Computer Assisted Intervention, MICCAI）, 目前仍然在审稿状态（under review）。
+\ifthenelse{\equal{\BlindReview}{true}}%
+        {
+        }
+        {
+        本章的部分工作已经整理好并提交到了国际医学图像计算与计算机辅助诊断会议（International Conference on Medical Image Computing and Computer Assisted Intervention, MICCAI）, 目前仍然在审稿状态（under review）。
+        }
+
 
 
 
@@ -1121,15 +1138,20 @@ atlas的分区图相匹配。这样一来，这个网络就实现了两个任务
 
 需要指出，我们的方法适用于任意两个中心采集到的神经影像数据的结合，但是对于每两个中心数据的相互结合，我们都需要重新训练或者微调我们的模型。这在一些小规模的神经影像数据处理与研究计划中，对于比较少量的中心或扫描仪个数来说，还可以接受，但是很明显如果中心数目变多，我们需要花费的时间精力以及存储计算资源都会大幅增加。这是我们方法的一个局限性所在，也是我们潜在的未来的工作，解决这个问题的一个可能的方法便是让网络中的生成器可以自由选择生成的目标中心，由此来设计一个多中心的数据生成与结合网络。
 
-本章的部分工作已经发表在了2019年的国际医学图像计算与计算机辅助诊断会议（International Conference on Medical Image Computing and Computer Assisted Intervention, MICCAI 2019）上，并在会上进行了口头报告与海报展示。
-
+\ifthenelse{\equal{\BlindReview}{true}}%
+        {
+        }
+        {
+        本章的部分工作已经发表在了2019年的国际医学图像计算与计算机辅助诊断会议（International Conference on Medical Image Computing and Computer Assisted Intervention, MICCAI 2019）上，并在会上进行了口头报告与海报展示。
+        }
+        
 
 
 
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% 第5章 总结与展望
+%% 第6章 总结与展望
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
