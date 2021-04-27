@@ -1,32 +1,58 @@
 \thispagestyle{cover}
 
-\begin{center}
-    \zihao{-4} \songti
-    \begin{tabularx}{\textwidth}{l c >{\raggedleft}X l}
-        分类号：           & \uline{\quad R318 \quad}  &
-        单位代码：         & \uline{\hfill 10335 \hfill} \\
-        密{\quad}级：      & \uline{\hfill 无 \hfill} &
-        学{\quad\quad}号： & \uline{\hfill \quad\quad\quad\quad\quad \hfill}
-    \end{tabularx}
-\end{center}
+\ifthenelse{\equal{\BlindReview}{true}}%
+        {
+        \begin{center}
+            \zihao{-4} \songti
+            \begin{tabularx}{\textwidth}{l c >{\raggedleft}X l}
+                分类号：           & \uline{\quad R318 \quad}  &
+                单位代码：         & \uline{\hfill \quad\quad\quad\quad\quad  \hfill} \\
+                密{\quad}级：      & \uline{\hfill 无 \hfill} &
+                学{\quad\quad}号： & \uline{\hfill \quad\quad\quad\quad\quad \hfill}
+            \end{tabularx}
+        \end{center}
+        }
+        {
+        \begin{center}
+            \zihao{-4} \songti
+            \begin{tabularx}{\textwidth}{l c >{\raggedleft}X l}
+                分类号：           & \uline{\quad R318 \quad}  &
+                单位代码：         & \uline{\hfill 10335 \hfill} \\
+                密{\quad}级：      & \uline{\hfill 无 \hfill} &
+                学{\quad\quad}号： & \uline{\hfill \quad\quad\quad\quad\quad \hfill}
+            \end{tabularx}
+        \end{center}
+        }
 
 
-\begin{center}
-    \includegraphics[width=0.4\paperwidth]{logo/zjuchar.pdf}
-\end{center}
+\ifthenelse{\equal{\BlindReview}{true}}%
+        {
+        \vspace{70pt}
+        
+        \begin{center}
+            \zihao{-1} \songti%
+            \TitleTypeNameCover
+        \end{center}
+        
+        \vskip 60pt
+        }
+        {\begin{center}
+            \includegraphics[width=0.4\paperwidth]{logo/zjuchar.pdf}
+        \end{center}
+        \vspace{-40pt}
+        
+        \begin{center}
+            \zihao{-1} \songti%
+            \TitleTypeNameCover
+        \end{center}
+        
+        \vskip 15pt
+        
+        \begin{center}
+            \includegraphics[width=0.14\paperwidth]{logo/zju.pdf}
+        \end{center}
+        }
 
-\vspace{-40pt}
-
-\begin{center}
-    \zihao{-1} \songti%
-    \TitleTypeNameCover
-\end{center}
-
-\vskip 15pt
-
-\begin{center}
-    \includegraphics[width=0.14\paperwidth]{logo/zju.pdf}
-\end{center}
 
 \vskip 20pt
 
@@ -61,7 +87,7 @@
                 专业名称：  &  \uline{\hfill \Major \hfill} \\
                 研究方向：  &  \uline{\hfill \Topic \hfill} \\
             }
-            所在学院：   &  \uline{生物医学工程与仪器科学学院}\\[8pt]
+            所在学院：   &  \uline{\quad\quad\quad\quad\quad\quad\quad\quad\quad\quad\quad\quad\quad}\\[8pt]
         }
         {%
             申请人姓名： & \uline{\hfill \StudentName \hfill} \\

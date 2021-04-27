@@ -9,9 +9,14 @@
 
 \vskip 5pt
 
-\begin{center}
-    \includegraphics[width=0.15\paperwidth]{logo/zju.pdf}
-\end{center}
+\ifthenelse{\equal{\BlindReview}{true}}%
+        {
+        \vskip 40pt
+        }
+        {\begin{center}
+            \includegraphics[width=0.15\paperwidth]{logo/zju.pdf}
+        \end{center}
+        }
 
 \vskip 10pt
 

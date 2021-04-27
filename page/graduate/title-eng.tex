@@ -14,9 +14,16 @@
 
 \vskip 5pt
 
-\begin{center}
-    \includegraphics[width=0.15\paperwidth]{logo/zju.pdf}
-\end{center}
+\ifthenelse{\equal{\BlindReview}{true}}%
+        {
+        \vskip 40pt
+        }
+        {\begin{center}
+            \includegraphics[width=0.15\paperwidth]{logo/zju.pdf}
+        \end{center}
+        }
+
+
 
 \vskip 10pt
 
@@ -72,7 +79,7 @@
 \begin{center}
     \zihao{4}
     \begin{tabularx}{.54\textwidth}{l X<{\centering}}
-        Date of oral defence: & \uline{\hfill June~~~, 2021  \hfill}
+        Date of oral defence: & \uline{\hfill ~~~~~~~, 2021  \hfill}
     \end{tabularx}
 \end{center}
 }
