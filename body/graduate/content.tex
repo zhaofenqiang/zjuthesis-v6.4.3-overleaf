@@ -14,13 +14,11 @@
 
 因此，为了解决这个问题，本论文将主要探讨怎样将深度学习技术更加方便准确地应用到大脑皮层表面数据的处理与分析上，希望能够借助深度学习的力量推动神经影像学研究在大脑皮层分析方向上的进步与发展。为了对上述所提及的大脑结构MR图像处理流程与基于脑皮层的数据处理与分析有一个更加全面与直观的了解，我们将在下一节详细介绍他们的背景、意义与研究现状。
 
-
-\begin{figure}[t]
+\begin{figure}[h]
     \centering
     \includegraphics[width=\linewidth]{figure/flowchart_of_surface_based_analysis.eps}
     \caption{\label{fig:flowchart_of_surface_based_analysis}典型的基于大脑皮层的数据处理与分析流程}
 \end{figure}
-
 
 \section{大脑皮层表面的重建及其意义}
 正如在图\ref{fig:flowchart_of_MRI_process_pipeline}中所展示的那样，MRI数据从图像到大脑皮层表面的重建有一套完整的流程。图\ref{fig:flowchart_of_surface_based_analysis}展示了一个更加直观完整的基于脑皮层的处理与分析流程。它主要分为三个阶段，（1）MR图像预处理，包括头动校正，头骨、小脑及脑干的去除，灰度不均匀校正，图像配准，灰质、白质及脑脊液的组织分割；（2）皮层表面重建，包括给非皮层结构施加掩模并进行填充，大脑左右半球分离，拓扑错误校正，皮层内表面重建，皮层外表面重建，以及皮层表面各种特征的计算；（3）基于皮层表面的处理与分析，包括球面映射，球面配准，感兴趣区域（Region of Interest, ROI）的分区，皮层表面重采样及各种皮层特征的重采样。这一小节我们将详细地介绍如何进行这每一步的操作来得到最终重建好的大脑皮层表面，并在下面几个小节介绍后续的基于皮层表面的处理与分析。
@@ -141,47 +139,43 @@ Fortin等人\cite{fortin2018harmonization}曾提出使用一种基于统计学�
 
 \chapter{基于球面U-Net的皮层分区与属性预测}\label{sec:基于球面U-Net的皮层分区与属性预测}
 
-在过去的十年中，由于CNN在特征学习方面的强大能力，它在计算机视觉的各种任务中获得了最先进的性能，例如，图像分类\cite{krizhevsky2012imagenet}、分割\cite{long2015fully}、目标检测和跟踪\cite{ren2015faster}。具体地在生物医学图像分析领域，U-Net\cite{ronneberger2015u}及其变种从众多CNN网络结构中脱颖而出，已经成为医学图像分割\cite{cciccek20163d}、合成\cite{nie2016estimating}、重建\cite{xiang2018ultra}和配准\cite{balakrishnan2018unsupervised}任务的最流行、最强大的网络结构之一。U-Net及其变种的成功的原因之一是其多层阶梯式的结构以及其中的跳转连接（skip connection）。这种设计使其可以将低、中、高三层的特征有效地整合在一起，共同捕获上下文和定位信息。另一个原因则来自于传统的基于网格格式的2D/3D图像，因为网络里的特征图可以很容易地进行池化和上采样，使得CNN，例如U-Net，可以利用不同分辨率级别的不同感受野分层学习丰富的图像特征。因此，正是欧几里得空间中的网络格式定义的邻接关系为U-Net架构提供了基础。然而，这种关系一般不存在于其他数据结构中，例如，医学图像中的许多器官是由三角网格表示的在不规则空间中的图结构。如图\ref{fig:figure_OrigSurf_SphereSurf}所示，由三角形网格\cite{dale1999cortical}构建的大脑皮层表面通常在形状上存在较大的个体间差异，即顶点数量不同、三角形的连接关系也不一样。正如在绪论中\ref{sec:大脑皮层表面配准}介绍的，在过去几十年中研究人员利用了大脑皮层的球形拓扑性质，将皮层表面膨胀并映射到球面上\cite{fischl2012freesurfer}，再利用正二十面体分形体离散化的球\cite{fischl1999cortical}进一步重采样。由于重采样后的球面具有一致的结构和均匀采样的顶点，从而可以为不同的个体建立一致的参考系，因此被广泛地应用于各种神经影像分析中\cite{li2019computational,glasser2013minimal}。但是，球面上的不同顶点之间仍然没有一致的直接邻域定义，因此没有办法定义卷积和转置卷积操作。结果便是尽管CNN在2D/3D图像中具有许多优势，但它们依然不能直接应用于皮层表面数据。
-
-为了解决这些问题，在本章中，我们决定利用正二十面体分形体离散化球面的均匀采样点和一致性结构等特性。这些特性来自于正二面体离散化球面的构造过程，即在正二十面体的每个三角形的每条边的中心不断添加新的顶点和边\cite{fischl2012freesurfer}。因此，本论文在这样的球面上设计了一种新的直观的球面卷积滤波器，称为1-ring卷积核。有了这个新的卷积核，我们就类比利用了二维图像网格上的标准3$\times$3卷积核和球面上的1-ring卷积核之间的关系，由此设计了球面空间的球面卷积、池化和转置卷积等操作。据此，本论文再将流行的U-Net网络结构中的操作更换为对应的球面操作，便将其从2D图像域扩展到了球面域，并把它叫作球面U-Net结构。
-
-\begin{figure}[t]
+在过去的十年中，由于CNN在特征学习方面的强大能力，它在计算机视觉的各种任务中获得了最先进的性能，例如，图像分类\cite{krizhevsky2012imagenet}、分割\cite{long2015fully}、目标检测和跟踪\cite{ren2015faster}。具体地在生物医学图像分析领域，U-Net\cite{ronneberger2015u}及其变种从众多CNN网络结构中脱颖而出，已经成为医学图像分割\cite{cciccek20163d}、合成\cite{nie2016estimating}、重建\cite{xiang2018ultra}和配准\cite{balakrishnan2018unsupervised}任务的最流行、最强大的网络结构之一。U-Net及其变种的成功的原因之一是其多层阶梯式的结构以及其中的跳转连接（skip connection）。这种设计使其可以将低、中、高三层的特征有效地整合在一起，共同捕获上下文和定位信息。另一个原因则来自于传统的基于网格格式的2D/3D图像，因为网络里的特征图可以很容易地进行池化和上采样，使得CNN，例如U-Net，可以利用不同分辨率级别的不同感受野分层学习丰富的图像特征。因此，正是欧几里得空间中的网络格式定义的邻接关系为U-Net架构提供了基础。然而，这种关系一般不存在于其他数据结构中，例如，医学图像中的许多器官是由三角网格表示的在不规则空间中的图结构。如图\ref{fig:figure_OrigSurf_SphereSurf}所示，由三角形网格\cite{dale1999cortical}构建\begin{figure}[h]
     \centering
     \includegraphics[width=.84\linewidth]{figure/figure_OrigSurf_SphereSurf.eps}
-    \caption{\label{fig:figure_OrigSurf_SphereSurf}脑皮层数据分析pipeline中不同阶段的大脑皮层表示。图中的皮层表面是使用每个顶点的平均曲率附上颜色的。}
-\end{figure}
+    \caption{\label{fig:figure_OrigSurf_SphereSurf}脑皮层数据分析pipeline中不同阶段的大脑皮层。图中皮层表面上每个点的颜色代表该处的平均曲率。}
+\end{figure}的大脑皮层表面通常在形状上存在较大的个体间差异，即顶点数量不同、三角形的连接关系也不一样。正如在绪论中\ref{sec:大脑皮层表面配准}介绍的，在过去几十年中研究人员利用了大脑皮层的球形拓扑性质，将皮层表面膨胀并映射到球面上\cite{fischl2012freesurfer}，再利用正二十面体分形体离散化的球\cite{fischl1999cortical}进一步重采样。由于重采样后的球面具有一致的结构和均匀采样的顶点，从而可以为不同的个体建立一致的参考系，因此被广泛地应用于各种神经影像分析中\cite{li2019computational,glasser2013minimal}。但是，球面上的不同顶点之间仍然没有一致的直接邻域定义，因此没有办法定义卷积和转置卷积操作。结果便是尽管CNN在2D/3D图像中具有许多优势，但它们依然不能直接应用于皮层表面数据。
+
+为了解决这些问题，本章利用了正二十面体分形体离散化球面的均匀采样点和一致性结构等特性。这些特性来自于正二面体离散化球面的构造过程，即在正二十面体的每个三角形的每条边的中心不断添加新的顶点和边\cite{fischl2012freesurfer}。因此，本论文在这样的球面上设计了一种新的直观的球面卷积滤波器，称为1-ring卷积核。有了这个新的卷积核，我们就类比利用了二维图像网格上的标准3$\times$3卷积核和球面上的1-ring卷积核之间的关系，由此设计了球面空间的球面卷积、池化和转置卷积等操作。据此，本论文再将流行的U-Net网络结构中的操作更换为对应的球面操作，便将其从2D图像域扩展到了球面域，并把它叫作球面U-Net结构。
 
 
 \section{球面U-Net}\label{sec:球面U-Net}
 \subsection{正二十面体离散化的球面}\label{sec:正二十面体离散化的球面}
-正二十面体是面最多、面积不规则性最小、与球体最为接近的柏拉图立体\cite{PlatonicSolid}。它有12个顶点，20个面，30条边，见图\ref{fig:figure_12-40962_spherical_surfaces}的左上角。从数据结构的角度来看，它是一个有12个顶点的图（graph），每个顶点有5个相邻顶点。正二十面体离散化的球面是指二十面体的分形体所表示的球面。它们可以使用以下步骤得到：（1）在正二十面体的每条边的中心增加一个新的顶点；（2）在一个三角形内部的每两个新的顶点之间增加一条新的边；（3）将新增加的顶点投影到球面上。因此，球面上的顶点数变得越来越多且满足以下关系：$N_1=12,N_{i+1}=4N_i-6,i=1,2,3,\dots,$其中$i$代表正二十面体的第$i$次分形。如引言所介绍的一样，正二十面体离散化球面在神经影像学研究中被广泛用于表示球面映射后重新采样的皮层表面数据\cite{fischl2012freesurfer}。
+正二十面体是面最多、面积不规则性最小、与球体最为接近的柏拉图立体\cite{PlatonicSolid}。它有12个顶点，20个面，30条边，见图\ref{fig:figure_12-40962_spherical_surfaces}的左上角。
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=.8\linewidth]{figure/figure_12-40962_spherical_surfaces.eps}
+    \caption{\label{fig:figure_12-40962_spherical_surfaces}按顺序分形的正二十面体离散化球面。每个球面的下方的数字代表了它的顶点数量。}
+\end{figure}从数据结构的角度来看，它是一个有12个顶点的图（graph），每个顶点有5个相邻顶点。正二十面体离散化的球面是指二十面体的分形体所表示的球面。它们可以使用以下步骤得到：（1）在正二十面体的每条边的中心增加一个新的顶点；（2）在一个三角形内部的每两个新的顶点之间增加一条新的边；（3）将新增加的顶点投影到球面上。因此，球面上的顶点数变得越来越多且满足以下关系：$N_1=12,N_{i+1}=4N_i-6,i=1,2,3,\dots,$其中$i$代表正二十面体的第$i$次分形。如引言所介绍的一样，正二十面体离散化球面在神经影像学研究中被广泛用于表示球面映射后重新采样的皮层表面数据\cite{fischl2012freesurfer}。
 一般来说，研究人员会使用40962或163842个顶点的第7或第8次分形的正二十面体来表示逐个顶点的皮层形态或功能属性（如脑沟深度、平均曲率、皮层厚度、功能连接梯度等），因为这已经可以为皮层表面研究提供足够可靠的分辨率了。
 
-\begin{figure}[t]
-    \centering
-    \includegraphics[width=.9\linewidth]{figure/figure_12-40962_spherical_surfaces.eps}
-    \caption{\label{fig:figure_12-40962_spherical_surfaces}从左到右，从上到下，按顺序分形的正二十面体离散化球面。每个球面的顶点数量显示在了它的下方。}
-\end{figure}
-
-
-\subsection{1-ring卷积核}\label{sec:1-ring卷积核}
-本论文用中心顶点及其1圈（1-ring）邻域内的所有相邻顶点来定义1-ring卷积核，如图\ref{fig:fig_filters}(a)所示。在利用正二十面体的分形体对球面进行离散化后，我们可以看到每个球面始终由两种类型的顶点组成：（1）正二十面体上原有的12个顶点，每个顶点只有5个1-ring的邻点；（2）其余的顶点，每个顶点有6个1-ring的邻点。为了使1-ring卷积核识别的模式在球面上具有一致性，我们需要定义一个相邻顶点的一致性顺序。与在规则网格中的2D/3D图像不同，球面上没有明确的参考方向，因此邻接顺序不是那么直接就可以得到的。为了解决这个问题，本论文利用了大脑的先验姿态信息。在神经影像学中，经过刚性配准\cite{greve2009accurate}对皮层表面的预处理后，大脑的位置处于原点并正面面向笛卡尔坐标系中的负y轴。因此，基于球面皮层的坐标系，我们希望1-ring卷积核具有方位角旋转不变性（azimuthally rotation invariant），即绕$z$轴的旋转不变性。
-
-\begin{figure}[!t]
+\begin{figure}[h]
 	\centering
 	\includegraphics[width=0.8\linewidth]{figure/fig_filters.eps}
 	\caption{正二十面体离散化球面上的三种卷积核。}
 	\label{fig:fig_filters}
 \end{figure}
 
+\subsection{1-ring卷积核}\label{sec:1-ring卷积核}
+本论文用中心顶点及其1圈（1-ring）邻域内的所有相邻顶点来定义1-ring卷积核，如图\ref{fig:fig_filters}(a)所示。在利用正二十面体的分形体对球面进行离散化后，我们可以看到每个球面始终由两种类型的顶点组成：（1）正二十面体上原有的12个顶点，每个顶点只有5个1-ring的邻点；（2）其余的顶点，每个顶点有6个1-ring的邻点。为了使1-ring卷积核识别的模式在球面上具有一致性，我们需要定义一个相邻顶点的一致性顺序。与在规则网格中的2D/3D图像不同，球面上没有明确的参考方向，因此邻接顺序不是那么直接就可以得到的。为了解决这个问题，本论文利用了大脑的先验姿态信息。在神经影像学中，经过刚性配准\cite{greve2009accurate}对皮层表面的预处理后，大脑的位置处于原点并正面面向笛卡尔坐标系中的负y轴。因此，基于球面皮层的坐标系，1-ring卷积核应该具有方位角旋转不变性（azimuthally rotation invariant），即绕$z$轴的旋转不变性。
+
+具体地，本论文将1-ring卷积核中相邻顶点的顺序定义如下。如图\ref{fig:figure_1_ring_projection_on_tangent_plane}所示，
 \begin{figure}[h]
 	\centering
 	\includegraphics[width=0.5\linewidth]{figure/figure_1_ring_projection_on_tangent_plane.eps}
 	\caption{1-ring卷积核邻域顺序的一致性定义。黑色的顶点$v_i$代表球面上的相邻顶点。蓝色的顶点$v_i'$是$v_i$在中心顶点$v_0$的切平面上的投影点。然后我们就可以根据$\theta_i$的大小得到邻点的顺序。}
 	\label{fig:figure_1_ring_projection_on_tangent_plane}
 \end{figure}
-
-具体地，本论文将1-ring卷积核中相邻顶点的顺序定义如下。如图\ref{fig:figure_1_ring_projection_on_tangent_plane}所示，假设$v_0$为中心顶点，$v_i$为其1-ring卷积核中的相邻顶点，$i=1,2,\dots,5$（有5个邻点时）或$1,2,\dots,6$（有6个邻点时），$T_{v_0}$为球面在$v_0$处的切平面。我们定义$\vec{\Gamma}_{v_0}$为$v_0$处的切向量，沿球的大圆（great circle）指向$T_{v_0}$中的$x$轴。$\vec{\Gamma}_{v_0}$可由$\vec{n}_z\times \vec{v}_0$得到，其中$\vec{n}_z$是$XOY$平面的单位法向量。$\vec{v}_0$是由原点$O$到$v_0$的向量。对于极点的两个顶点，我们定义$\vec{\Gamma}_{v_0}=(1,0,0)$。接着再将顶点$v_i$投影到切平面$T_{v_0}$，得到投影顶点$v_i'\in T_{v_0}$。然后再计算每个相邻顶点与切平面内$x$轴之间的角度$\theta_i$：
+假设$v_0$为中心顶点，$v_i$为其1-ring卷积核中的相邻顶点，$i=1,2,\dots,5$（有5个邻点时）或$1,2,\dots,6$（有6个邻点时），$T_{v_0}$为球面在$v_0$处的切平面。我们定义$\vec{\Gamma}_{v_0}$为$v_0$处的切向量，沿球的大圆（great circle）指向$T_{v_0}$中的$x$轴。$\vec{\Gamma}_{v_0}$可由$\vec{n}_z\times \vec{v}_0$得到，其中$\vec{n}_z$是$XOY$平面的单位法向量。$\vec{v}_0$是由原点$O$到$v_0$的向量。对于极点的两个顶点，我们定义$\vec{\Gamma}_{v_0}=(1,0,0)$。接着再将顶点$v_i$投影到切平面$T_{v_0}$，得到投影顶点$v_i'\in T_{v_0}$。然后再计算每个相邻顶点与切平面内$x$轴之间的角度$\theta_i$：
 \begin{equation}
 \theta_i=\arccos{\frac{\vec{\Gamma}_{v_0} \cdot (\vec{v_i'}-\vec{v}_0)}{\Vert{\vec{\Gamma}_{v_0}}\Vert\Vert{\vec{v_i'}-\vec{v}_0}\Vert}}.
 \end{equation}
@@ -192,69 +186,75 @@ Fortin等人\cite{fortin2018harmonization}曾提出使用一种基于统计学�
 \subsection{标准球面卷积操作}
 根据1-ring卷积核的定义，在正二十面体离散化球面上的标准卷积（standard spherical convolution）操作可以很容易地定义，即1-ring卷积核与球面特征的加权过程，如图\ref{fig:fig_std_conv}所示。类似于2D/3D图像中的传统卷积操作，1-ring卷积核被用来在整个球面上对每个顶点进行卷积，以获得每个顶点的新的特征表达。2D/3D卷积中的步长（stride）概念在标准球面卷积操作中是不需要的，因为1-ring卷积核始终与每个顶点卷积，以获得每个顶点的新的特征向量。边缘填充（padding）在这里也不适用，因为球面卷积是在一个封闭的球面上进行的。球面卷积操作的作用是在同一个分辨率的离散化球面上，将特征图从一个维度转换到另一个维度，并进一步通过多层架构来学习和提取皮层属性的高级特征。
 
-在具体实现中，对于一个具有$N$个顶点和$D$个通道特征图的球面来说，我们首先会提取每个顶点$v$和它的1-ring邻域的特征$I_v(7\times D)$，并将其变形（reshape）为属于该顶点的行向量$I_v'(1\times 7D)$。然后，对所有的$N$个顶点进行迭代，并将第一个维度堆叠（stack）起来，得到全节点的卷积矩阵$I(N\times 7D)$（参考MATLAB或其他深度学习工具箱中的“im2col”函数）。之后，在输出的通道数为$F$的情况下，通过将$I$与卷积层所要学习的卷积参数$W(7D\times F)$相乘，即可得到输出的新的特征图$O(N\times F)$。
-
-\begin{figure}[t]
+\begin{figure}[h]
 	\centering
 	\includegraphics[width=\linewidth]{figure/figure_convolution.eps}
 	\caption{基于1-ring卷积核的标准球面卷积操作。图示的卷积使用$F$个卷积核将带有$D$通道的输入特征图变成了带有$F$通道的输出特征图。}
 	\label{fig:fig_std_conv}
 \end{figure}
 
-\begin{figure}[t]
+在具体实现中，对于一个具有$N$个顶点和$D$个通道特征图的球面来说，我们首先会提取每个顶点$v$和它的1-ring邻域的特征$I_v(7\times D)$，并将其变形（reshape）为属于该顶点的行向量$I_v'(1\times 7D)$。然后，对所有的$N$个顶点进行迭代，并将第一个维度堆叠（stack）起来，得到全节点的卷积矩阵$I(N\times 7D)$（参考MATLAB或其他深度学习工具箱中的“im2col”函数）。之后，在输出的通道数为$F$的情况下，通过将$I$与卷积层所要学习的卷积参数$W(7D\times F)$相乘，即可得到输出的新的特征图$O(N\times F)$。
+
+
+\subsection{标准球面池化操作}
+如图\ref{fig:fig_std_pooling}所示，球面上的标准池化操作（standard spherical pooling）与2D/3D图像上的也很相似。它主要用来增加网络的感受域（receptive field），减小特征表达的空间尺寸，以此减少网络中的参数数量和计算量。它与正二十面体的膨胀扩展过程相反，我们可以称之为正二十面体收缩过程。在第$i$个正二十面体分形体上，收缩过程将首先选择同样也在第($i$-1)个分形体上的中心顶点。这些顶点在收缩过程结束后仍将保留在球面上。然后把1-ring卷积核作为池化核应用到这些中心顶点上，再把第($i$-1)次分形球面上的边重新连接起来。便可以得到一个具有较少顶点的精细融合了上一级特征的池化球面。
+
+\begin{figure}[h]
 	\centering
 	\includegraphics[width=\linewidth]{figure/figure_pooling_layer.eps}
 	\caption{基于1-ring卷积核的标准球面池化操作。输入的第$i$次分形球面被池化到($i$-1)次分形球面上，同时特征图通道数$D$不变。}
 	\label{fig:fig_std_pooling}
 \end{figure}
 
-\subsection{标准球面池化操作}
-如图\ref{fig:fig_std_pooling}所示，球面上的标准池化操作（standard spherical pooling）与2D/3D图像上的也很相似。它主要用来增加网络的感受域（receptive field），减小特征表达的空间尺寸，以此减少网络中的参数数量和计算量。它与正二十面体的膨胀扩展过程相反，我们可以称之为正二十面体收缩过程。在第$i$个正二十面体分形体上，收缩过程将首先选择同样也在第($i$-1)个分形体上的中心顶点。这些顶点在收缩过程结束后仍将保留在球面上。然后把1-ring卷积核作为池化核应用到这些中心顶点上，再把第($i$-1)次分形球面上的边重新连接起来。便可以得到一个具有较少顶点的精细融合了上一级特征的池化球面。
-
 同样在具体实现中，我们将从所有中心顶点的1-ring邻域中提取特征矩阵$I(N\times 7D)$。然后我们将其reshape为$I'(N\times D\times7)$。通过对$I'$的第3个维度取平均（平均池化）或最大值（最大池化），便可以得到池化后的特征图$O(N\times D)$。同时，顶点的数量从原始球面的$4N-6$减少为池化球面的$N$。
-
 
 \begin{figure}[t]
 	\centering
-	\includegraphics[width=0.52\linewidth]{figure/figure_upsampling_layer.eps}
-	\caption{球面上的上采样方法说明。A、B、D是我们的方法，C是在\cite{jiang2018spherical,parvathaneni2019cortical}中使用的固定索引上采样方法。左边的输入特征图在($i$-1)次分形体上。右边的输出特征图在第$i$个分形体上。在A、B、C中，我们用黄色代表($i$-1)次细分的顶点，用蓝色代表$i$次细分新生成的顶点。在D中，我们用不同的颜色代表($i$-1)次细分的三个不同的顶点a、b、c，其他不同的颜色代表数据通道，这与图\ref{fig:fig_std_conv}和图\ref{fig:fig_std_pooling}中的通道颜色一致。然后，每个子图都显示了第$i$次分形体的特征图是如何从($i$-1)次分形体的池化特征图上采样得到的。}
+	\includegraphics[width=0.8\linewidth]{figure/figure_upsampling_layer.eps}
+	\caption{球面上的上采样方法说明。左边的输入特征图在($i$-1)次分形体上，右边的输出特征图在第$i$个分形体上，每个子图都显示了第$i$次分形体的特征图是如何从($i$-1)次分形体的池化特征图上采样得到的。}
 	\label{fig:fig_upsampling}
 \end{figure}
 
 \subsection{球面上采样操作}
 对正二十面体离散化球面数据进行上采样是从池化的低分辨率球面特征图中恢复原始的高分辨率球面的一个操作。因此，对于编码器解码器（encoder-decoder）结构\cite{badrinarayanan2017segnet}中的解码器的构建是至关重要的，尤其是对于逐个顶点的分类和预测任务。本小节同样基于1-ring卷积核，针对正二十面体离散化球面提出了几种流行的上采样方法。
 
-\subsubsection{线性插值上采样（Linear interpolation）}
+\subsubsection{线性插值上采样（linear interpolation）}
 球面上的线性插值遵循正二十面体的膨胀分形过程，它与平均池操作相反。对于每一个从三角形的边的中心生成的新的顶点，它的特征将由这条边的两个父顶点（parent vertices）的特征值进行插值得到，如图\ref{fig:fig_upsampling}A所示。
 
-\subsubsection{最大值池化索引上采样（Max-pooling indices）}
-由SegNet\cite{badrinarayanan2017segnet}引入的最大池化索引上采样使用编码器存储的最大值池化索引，在相应的解码器中执行非线性上采样。我们将这种方法扩展到了球面上，如图\ref{fig:fig_upsampling}B所示。在编码器部分，首先最大值池化索引1、2和5分别被储存起来，它们是顶点a、b和c的1-ring邻域中的最大值。然后在相应的上采样层，分别用a、b、c的值来还原a的第1个邻点、b的第2个邻点和c的第5个邻点，其他顶点设为0。为了更好的理解这个方法并和其他方法进行比较，我们还增加了一个如图\ref{fig:fig_upsampling}C所示的固定索引（Fixed Indices）上采样方法。
+\subsubsection{最大值池化索引上采样（max-pooling indices）}
+由SegNet\cite{badrinarayanan2017segnet}引入的最大池化索引上采样使用编码器存储的最大值池化索引，在相应的解码器中执行非线性上采样。我们将这种方法扩展到了球面上，如图\ref{fig:fig_upsampling}B所示。在编码器部分，首先最大值池化索引1、2和5分别被储存起来，它们是顶点a、b和c的1-ring邻域中的最大值。然后在相应的上采样层，分别用a、b、c的值来还原a的第1个邻点、b的第2个邻点和c的第5个邻点，其他顶点设为0。
 
-\subsubsection{球面转置卷积（Transposed convolution）}
+\subsubsection{球面转置卷积（transposed convolution）}
 转置卷积在U-Net中也被称为反卷积或上卷积（up-convolution）\cite{ronneberger2015u}。在2D/3D自然图像领域，转置卷积首先在所有原始像素上进行滑动窗口加权来恢复每个像素周围的像素，然后控制步长在恢复的重叠像素处进行求和。受这个思想的启发，我们将转置卷积也扩展到了球面上。对于一个球面的原始特征图$I$($N_i\times D)$，其中$N_i$表示第$i$个正二十面体分形体上的顶点数，$D$表示特征数，还有它的池化的特征图$O$($N_{i-1}\times F)$。我们可以通过首先使用1-ring卷积核对池化的$O$上的每个顶点做转置卷积，然后对重叠的顶点进行求和来还原$I$，如图\ref{fig:fig_upsampling}D所示。
-
-\begin{figure}[t]
-	\centering
-	\includegraphics[width=\linewidth]{figure/figure_unet.eps}
-	\caption{球面U-Net架构。蓝色方框代表球面空间上的特征图。特征的数量$C_i$标在框的上方。顶点数量$N_i$标在方框的左下角。$N_{i+1}=(N_i+6)/4$，$C_{i+1}=C_i\times 2$。$N_1$一般是10242、40962或163842，$C_1$通常设置为64。在我们的应用中，输出的球面是皮层分区图或预测的皮层属性图。}
-	\label{fig:fig_unet}
-\end{figure}
 
 \subsection{球面U-Net的构建}\label{sec:球面U-Net的构建}
 基于上述我们定义的球面卷积、池化和转置卷积操作，我们搭建了球面U-Net结构，如图\ref{fig:fig_unet}所示。它有一个编码器和一个解码器，分别有5个不同的分辨率级别，用$i$来表示，即$i=1,2,\dots,5$。与标准的U-Net\cite{ronneberger2015u}不同的是，我们用1-ring卷积核代替了所有的3$\times$3卷积，用球面转置卷积代替了2$\times$2的标准转置卷积，用球面最大/平均值池代替了2$\times$2最大值池化。另外在此基础上，我们还在每个卷积层的ReLU（Rectified Linear Unit）激活函数前，增加了一个批量归一化层（Batch Normalization, BN）。在最后一层，1$\times$1的卷积被vertex-wise的加权平均所取代，用来将倒数第二层的$C_1$通道的特征向量映射到最后一层所需的$C_{out}$通道。另外，在球面U-Net中，特征通道数在每个球面池化层后翻倍，并在每个转置卷积层后减半，使得$C_{i+1}=C_i\times 2$，$N_{i+1}=(N_i+6)/4$。值得注意的是，我们不需要在原始U-Net\cite{ronneberger2015u}中使用的平铺策略来实现无缝的输出图，因为球面U-Net中所有的数据都在一个封闭的球面上。
 
+\begin{figure}[t]
+	\centering
+	\includegraphics[width=\linewidth]{figure/figure_unet.eps}
+	\caption{球面U-Net结构。蓝色方框代表球面空间上的特征图。特征的数量$C_i$标在框的上方。顶点数量$N_i$标在方框的左下角。$N_{i+1}=(N_i+6)/4$，$C_{i+1}=C_i\times 2$。$N_1$一般是10242、40962或163842，$C_1$通常设置为64。在我们的应用中，输出的球面是皮层分区图或预测的皮层属性图。}
+	\label{fig:fig_unet}
+\end{figure}
 
 \section{球面可变形U-Net}
 上述使用1-ring卷积核构建的球面U-Net本质上依然局限于模拟比较大的固定变换\cite{dai2017deformable}。然而由于皮层褶皱的形状和大小变化很大，开发应用于皮层的深度学习卷积核的另一个挑战就是如何模拟并自动调节针对不同皮层结构的不同变换。这个缺陷来自于1-ring卷积核的固定设计，因为1-ring卷积核在每一个操作中，例如球面卷积、池化，都使用固定位置的邻点对输入特征图进行采样。这样一来，同一层中所有顶点的感受域是相同的，然而深层网络的每一层都需要在空间位置上编码高级语义信息，由此来表达不同形状和大小的图像结构，固定的感受域在这种情况下明显不太适合搭建深层神经网络。因此传统的CNN在几何变换建模这一方面存在固有的缺陷。为了解决这个问题，Deformable Convolutional Network（DCN）\cite{dai2017deformable}提出在卷积和池化层中使用额外的偏移量来变换空间采样位置，并从目标任务中学习任务特定的偏移量。因此DCN可以自适应地学习各种几何变换。另外一些相关工作在几何变换建模方面也使用了这一概念，但只基于一些先验知识做了特定变换，如尺度\cite{xu2014scale}和旋转\cite{worrall2017harmonic}。空间变换网络（Spatial Transformer Networks, STN）\cite{jaderberg2015spatial}是第一个直接从数据中学习几何变换的方法。它的目的是学习一个全局的变换，如affine变换，然后用来对特征图进行形变或扭曲。而DCN更注重局部的、可变形的变换，并且没有特征形变步骤，因此更容易集成到流行的CNN架构中。当可变形卷积中的偏移量固定在一些特定的稀疏位置时，可变形卷积就退化成了空洞卷积\cite{chen2017rethinking}，即将原卷积核的权值保持在固定的稀疏位置。这是DCN的一种特殊情况。因此，DCN是一种比较通用的CNN模型，可以灵活地调整感受域的大小，大大增强CNN的变形建模能力。同时，它还具有轻量级和易于训练的特点，对于需要密集预测的复杂视觉任务具有非常有效的作用\cite{dai2017deformable}。
 
 因此，受到欧几里得空间中的可变形卷积网络DCN\cite{dai2017deformable}的启发，本论文学习了它的变形增强卷积层和池化层的概念，提出将1-ring卷积核进一步发展为球面可变形1-ring卷积核（deformable 1-ring filter），开发了球面可变形卷积和球面可变形池化操作，并进一步提出将DCN模型扩展到球面，以对皮层表面数据的各种复杂未知的变换进行建模。具体来讲，它在常规的1-ring卷积核采样位置上增加了球面偏移量，从而使1-ring卷积核可以自由地变形，用于自适应地定位不同尺寸和形状的皮层结构。另外它们都是轻量级的，可以很容易地取代它们之前的标准球面操作，从而方便搭建新的球面可变形U-Net（Spherical Deformable U-Net, SDU-Net）。
 
-\begin{figure}[t]
+\subsection{球面变形卷积与池化操作}
+如图\ref{fig:fig_deform_conv}和图\ref{fig:fig_deform_pool}所示，球面偏移量首先是通过在相同的输入特征图上应用标准
+\begin{figure}[h]
 	\centering
 	\includegraphics[width=0.85\linewidth]{figure/spheircal_deform_conv.eps}
 	\caption{球形变形卷积操作。}
 	\label{fig:fig_deform_conv}
 \end{figure}
+的球面卷积层得到的。输出偏移场由大小为$N\times 14$的切向量表示。每个顶点的切平面是在该顶点处定义的，这意味着每个顶点都有一个不同的切平面。通道数14对应每个顶点$v_n$的1-ring卷积核的7个邻点${\{v_{n,i}\}}_{i=1}^7$（$i$代表第$i$个邻点）的切向量${\{\overrightarrow{u_{n,i}}\}}_{i=1}^7$。那么$E_{n,i}\overrightarrow{u_{n,i}}$则会将切向量从切平面空间映射到三维空间，其中$E_{n,i}=[\overrightarrow{e_{n,i}^1},\overrightarrow{e_{n,i}^2}]$是$v_{n,i}$处切平面空间上的$3\times 2$的正交基。那么在一个单位球体上，变形后的采样位置$\{v_{n,i}'\}_{i=1}^7$就可以被定义为：
+\begin{equation}\label{equ:equ2-2}
+v_{n,i}'=\frac{v_{n,i}+E_{n,i}\overrightarrow{u_{n,i}}}{\Vert v_{n,i}+E_{n,i}\overrightarrow{u_{n,i}}\Vert},
+\end{equation}
+通过这种方式，常规的1-ring卷积核被变形了并增加了额外的球面偏移量$\overrightarrow{u_{n,i}}$，从而实现了对不同位置的感受域的自适应学习。然后我们将变形后的1-ring卷积核的采样位置的特征值与1-ring卷积核进行加权，就可实现球面变形卷积，或球面变形池化操作。值得注意的是，变形采样位置最终会被归一化到球面上，因此它在切平面上的范围并不是无限大的，而是在$(-\pi/2,+\pi/2)$的球形范围内。尽管如此，在实践中我们发现变形大小仍然在一个很小的范围内，这个范围即使对于皮层分区图上比较大的ROI而言，也是一个合理的变形大小。在这种情况下，切平面和球面上的变形点非常接近。它们之间简单而近似相等的关系（公式\ref{equ:equ2-2}）可以很容易地被网络学习到，从而找到球体上实际的最佳变形采样位置。由于$\overrightarrow{u_{n,i}}$通常是小数，所以$v_{n,i}'$处的特征值是通过重心插值法\cite{yeo2009spherical}计算出来的。最后，由于所有的运算都是可导的，网络中的梯度便可以有效地反向传播用来训练卷积核中的权值，这些权值随后就可以用于同时生成输出特征图和偏移量。
 
 \begin{figure}[t]
 	\centering
@@ -262,13 +262,6 @@ Fortin等人\cite{fortin2018harmonization}曾提出使用一种基于统计学�
 	\caption{球形变形池化操作。}
 	\label{fig:fig_deform_pool}
 \end{figure}
-
-\subsection{球面变形卷积与池化操作}
-如图\ref{fig:fig_deform_conv}和图\ref{fig:fig_deform_pool}所示，球面偏移量首先是通过在相同的输入特征图上应用标准的球面卷积层得到的。输出偏移场由大小为$N\times 14$的切向量表示。每个顶点的切平面是在该顶点处定义的，这意味着每个顶点都有一个不同的切平面。通道数14对应每个顶点$v_n$的1-ring卷积核的7个邻点${\{v_{n,i}\}}_{i=1}^7$（$i$代表第$i$个邻点）的切向量${\{\overrightarrow{u_{n,i}}\}}_{i=1}^7$。那么$E_{n,i}\overrightarrow{u_{n,i}}$则会将切向量从切平面空间映射到三维空间，其中$E_{n,i}=[\overrightarrow{e_{n,i}^1},\overrightarrow{e_{n,i}^2}]$是$v_{n,i}$处切平面空间上的$3\times 2$的正交基。那么在一个单位球体上，变形后的采样位置$\{v_{n,i}'\}_{i=1}^7$就可以被定义为：
-\begin{equation}\label{equ:equ2-2}
-v_{n,i}'=\frac{v_{n,i}+E_{n,i}\overrightarrow{u_{n,i}}}{\Vert v_{n,i}+E_{n,i}\overrightarrow{u_{n,i}}\Vert},
-\end{equation}
-通过这种方式，常规的1-ring卷积核被变形了并增加了额外的球面偏移量$\overrightarrow{u_{n,i}}$，从而实现了对不同位置的感受域的自适应学习。然后我们将变形后的1-ring卷积核的采样位置的特征值与1-ring卷积核进行加权，就可实现球面变形卷积，或球面变形池化操作。值得注意的是，变形采样位置最终会被归一化到球面上，因此它在切平面上的范围并不是无限大的，而是在$(-\pi/2,+\pi/2)$的球形范围内。尽管如此，在实践中我们发现变形大小仍然在一个很小的范围内，这个范围即使对于皮层分区图上比较大的ROI而言，也是一个合理的变形大小。在这种情况下，切平面和球面上的变形点非常接近。它们之间简单而近似相等的关系（公式\ref{equ:equ2-2}）可以很容易地被网络学习到，从而找到球体上实际的最佳变形采样位置。由于$\overrightarrow{u_{n,i}}$通常是小数，所以$v_{n,i}'$处的特征值是通过重心插值法\cite{yeo2009spherical}计算出来的。最后，由于所有的运算都是可导的，网络中的梯度便可以有效地反向传播用来训练卷积核中的权值，这些权值随后就可以用于同时生成输出特征图和偏移量。
 
 \subsection{球面可变形U-Net的构建}
 在\ref{sec:球面U-Net的构建}球面U-Net的基础上，为了增强球面U-Net的几何变换建模能力，本论文把变形卷积和池化操作整合进了球面U-Net并搭建了SDU-Net，用来自适应地模拟各种不同尺寸和形状的皮层结构以满足不同皮层表面应用的需求。由于这两种可变形运算的输入和输出都与标准版本相同，因此它们可以很容易地替代球面U-Net中的对应的运算，同时增加的运算量也不是很大，这将在后面的实验部分证明。如图\ref{fig:fig_sdunet}所示，SDU-Net的基本结构与球面U-Net一致。编码器由8个球面卷积层和3个球面池层组成。球面可变形操作应用于前4个卷积层和所有池化层。我们对不同的层数是否应用可变性操作也进行了对比实验，发现如图\ref{fig:fig_sdunet}这种配置对于不同的任务来说是一种最好的结果。然后，由球面转置卷积和卷积层组成的解码器从编码器提取的特征图中生成最终的结果。SDU-Net的通道数与分辨率层数也与它的标准版本的球面U-Net一致。
@@ -291,116 +284,113 @@ v_{n,i}'=\frac{v_{n,i}+E_{n,i}\overrightarrow{u_{n,i}}}{\Vert v_{n,i}+E_{n,i}\ov
 \subsection{实验设计}\label{sec:大脑皮层分区实验实验设计}
 将大脑皮层表面自动准确地分成结构和功能上有意义的区域，在人类大脑皮层的分析中具有根本性的重要意义\cite{meng2015automatic}。在基于区域或网络的大脑研究中，它对于区域定位和个体之间的比较至关重要。传统的基于配准的方法\cite{meng2015automatic,yeo2009spherical,fischl2004automatically}需要设计特定的人工特征来将皮层形状映射到分区标签（ROI label）上，这不仅耗时还需要专家经验的介入。由于对不同的神经解剖专家的依赖性强，因此很容易出现经验不一致错误。在本论文中，我们将这个分区问题看作是一个语义分类问题来解决，使用我们的基于深度学习的球面U-Net及其变种来对整个皮层表面进行分区，即对每个顶点进行密集分类，给每个顶点都分配一个分区的标签。
 
-我们使用了NAMIC成人数据集\cite{meng2015automatic}和一个在北卡罗莱纳大学教堂山分校（University of North Carolina at Chapel Hill, UNC）采集的婴儿数据集。NAMIC数据集包含了39个成人大脑MR图像。UNC婴儿数据集包含了90个婴儿大脑MRI数据。NAMIC数据集中的所有皮层表面均使用FreeSurfer\cite{fischl2012freesurfer}pipeline进行了重建。婴儿大脑皮层表面使用了婴儿专用的MRI数据处理pipeline\cite{li2015construction,2014measuring}（iBEAT V2.0 Cloud, http://www.ibeat.cloud/）进行重建。我们在这篇论文中只关注大脑的左半球，因为右半球是类似的。重建后的左半球皮层表面的每个顶点都含有3个形态学属性值，即平均曲率（mean curvature, curv）、平均凸度（average convexity, sulc）和脑沟深度（sulcal depth）。其中，curv是精细度量皮层折叠的评价指标；sulc是粗略度量皮层折叠的评价指标；sulcal depth是结合了粗略视图和精细视图的皮层折叠评价指标。这些形状度量指标反映了皮层表面的局部几何属性，这对于皮层表面的分区是十分有用的\cite{desikan2006automated}。随后根据FreeSurfer定义的皮层分区\cite{desikan2006automated}，每个皮层表面都由神经解剖学家依据大脑沟回形态手动分成35个区域。最后所有的大脑皮层都被映射到球面空间，然后重采样到正二十面体第7次分形体离散化球面上（40962个顶点）。
+本实验采用了NAMIC成人数据集\cite{meng2015automatic}和一个在北卡罗莱纳大学教堂山分校（University of North Carolina at Chapel Hill, UNC）采集的婴儿数据集。NAMIC数据集包含了39个成人大脑MR图像。UNC婴儿数据集包含了90个婴儿大脑MRI数据。NAMIC数据集中的所有皮层表面均使用FreeSurfer\cite{fischl2012freesurfer}pipeline进行了重建。婴儿大脑皮层表面使用了婴儿专用的MRI数据处理pipeline\cite{li2015construction,2014measuring}（iBEAT V2.0 Cloud, http://www.ibeat.cloud/）进行重建。我们在这篇论文中只关注大脑的左半球，因为右半球是类似的。重建后的左半球皮层表面的每个顶点都含有3个形态学属性值，即平均曲率（mean curvature, curv）、平均凸度（average convexity, sulc）和脑沟深度（sulcal depth）。其中，curv是精细度量皮层折叠的评价指标；sulc是粗略度量皮层折叠的评价指标；sulcal depth是结合了粗略视图和精细视图的皮层折叠评价指标。这些形状度量指标反映了皮层表面的局部几何属性，这对于皮层表面的分区是十分有用的\cite{desikan2006automated}。随后根据FreeSurfer定义的皮层分区\cite{desikan2006automated}，每个皮层表面都由神经解剖学家依据大脑沟回形态手动分成35个区域。最后所有的大脑皮层都被映射到球面空间，然后重采样到正二十面体第7次分形体离散化球面上（40962个顶点）。
 
 为了更好地展现模型的泛化能力，我们使用60\%的数据进行训练，15\%的数据进行验证，25\%的数据进行测试。我们首先在15\%的验证集和60\%的训练集之间进行了5次的交叉验证。然后，基于5次交叉验证的结果我们选出每个模型最好的超参数，并基于最好的超参数用训练集重新训练好每一个模型，然后在单独保留的测试集上测试每一个模型的表现。在训练时，我们使用了交叉熵损失函数（cross-entropy loss）和Adam优化算法\cite{kingma2014adam}来更新网络的可训练参数，并且把学习率减小5倍一旦训练Dice停滞2个回合（epoch）。我们通过随机绕$z$轴旋转球面50次来进行数据增强（data augmentation）。为了进行定量评估，正如\cite{yeo2009spherical}所做的一样，我们计算了所有测试数据的平均Dice\cite{dice1945measures}指标。
 
 \subsection{基准模型}
-我们使用了如图\ref{fig:fig_unet}所示的球面U-Net结构展现了本论文提出的球面神经网络的优越性能，并用图\ref{fig:fig_sdunet}所示的SDU-Net结构研究了可变性卷积和池化的作用。我们将$C_{in}$统一设置为3，对应3个形状属性，$C_{out}$设置为35，对应35个ROI标签，$k$设置为7，所以$N_k=40,962$，$C_1$设置为32。为了研究网络参数的大小和过拟合的影响，我们将图\ref{fig:fig_unet}所示的球面U-Net也称为球面U-Net23，将拥有3个分辨率级别18个卷积层的球面U-Net称为球面U-Net18。
+实验使用了如图\ref{fig:fig_unet}所示的球面U-Net结构展现了本论文提出的球面神经网络的优越性能，并用图\ref{fig:fig_sdunet}所示的SDU-Net结构研究了可变性卷积和池化的作用。我们将$C_{in}$统一设置为3，对应3个形状属性，$C_{out}$设置为35，对应35个ROI标签，$k$设置为7，所以$N_k=40,962$，$C_1$设置为32。为了研究网络参数的大小和过拟合的影响，我们将图\ref{fig:fig_unet}所示的球面U-Net也称为球面U-Net23，将拥有3个分辨率级别18个卷积层的球面U-Net称为球面U-Net18。
 
 为了更好地验证球面可变形操作的有效性，我们将球面可变形操作与其他最先进的语义分割CNN架构进行了结合。注意到这些架构一般由两个网络组成，一个是学习输入图像高级特征表达的编码器，另一个是针对不同任务从编码后的特征图中生成结果的解码器，我们便使用了与SDU-Net中相同的编码器以及其他两个先进的解码器结构来做比较实验，即SegNet\cite{badrinarayanan2017segnet}和FCN\cite{long2015fully}。SegNet是一个优秀的语义分割方法，球面SegNet（Spherical SegNet）与SDU-Net在两个方面有所不同：（1）球面SegNet中没有复制和跳转连接；（2）对于上采样操作，球面SegNet使用线性插值。FCN是另一种流行的分割网络。我们使用了传统的FCN-8s\cite{long2015fully}作为基础结构，因为它是能将高层信息和低层信息结合起来的最佳FCN变体，再将相应操作拓展到球面上后便搭建了球面FCN-8s架构（Spherical FCN-8s）。球面FCN-8s会在每个池化层之后，将不同分辨率的特征图进行结合，最后利用转置卷积层将结合后的特征图映射到所需的输出通道。
 
-\begin{table}[t]
-		\caption{\label{tab:婴儿数据集分区结果}在不同网络的编码器部分使用不同的可变形卷积或池化层的婴儿脑皮层分区结果。}
+\begin{table}[h]
+		\caption{\label{tab:婴儿数据集分区结果}在网络的编码器部分使用不一样的可变形卷积或池化层的婴儿脑皮层分区结果。}
 		\centering
 		\zihao{5}
-		\begin{tabularx}{\linewidth}{l|X<{\centering}|X<{\centering}|X<{\centering}|X<{\centering}}
-			\hline
+		\begin{tabularx}{\linewidth}{l X<{\centering} X<{\centering} X<{\centering} X<{\centering}}
+			\Xhline{2\arrayrulewidth}
 			\makecell{球面变形操作的使用情况\\ (\# layers)}& 球面U-Net23      & 球面U-Net18     &  球面SegNet & 球面FCN-8s   \\
 			\hline
 			无变形操作的基准模型                    &  92.67±1.60            &	92.28±1.70       &  89.49±3.52       	 &		91.75±1.55 \\   
-			\hline
+			
 			2 deformable conv layers (1-2)           &	93.09±1.57           &	92.78±1.72		 &  89.72±2.60           &	92.10±1.50  \\
 			4 deformable conv layers (1-4)           & 	\textit{93.15±1.40}	& \textit{92.85±1.57}	& \textit{90.04±2.19}			&92.15±1.59  \\
 			6 deformable conv layers (1-6)           & 	92.97±1.59	&		92.76±1.70	&		90.01±2.40	&		\textit{92.16±1.51} \\
 			6 deformable conv layers (3-8) 	         &	93.05±1.58	&		92.75±1.87	&		90.01±2.67		&	92.10±1.60 \\
-			\hline
+			
 			Spherical deformable pooling            &  	92.98±1.56	&	92.61±1.67	&		89.95±2.56	&		92.06±1.62\\
-			\hline
+			
 			\makecell{Spherical deformable pooling+\\4 deformable conv layers (1-4)} &	\textbf{93.20±1.40} &	\textbf{93.07±1.51}	& \textbf{90.06±2.11}	&  \textbf{92.41±1.51}	 \\
-			\hline 
+			\Xhline{2\arrayrulewidth} 
 		\end{tabularx}
 \end{table}
 
 \subsection{实验结果}
-\textbf{球面变形卷积。}表\ref{tab:婴儿数据集分区结果}展示了球面可变形卷积在不同结构下的不同使用效果。当使用更多的可变形卷积层时，Dice指标明显稳步提高。当球面FCN-8s的前6个卷积层为可变形卷积层，其他网络的前4个卷积层为可变形卷积层时，便可以得到最优结果。因此，在接下来的实验中，我们将在特征提取网络的前4个卷积层中使用可变形卷积层。为了更好地理解球面可变形卷积的原理，我们在图\ref{fig:receptivefield_sampling_points}中画出了使用普通的1-ring卷积核和可变形的1-ring卷积核在连续3个卷积层后的采样点位置。由此我们可以观察到，在连续的可变形卷积层中，学习到的球面偏移量对不同的皮层结构具有很强的自适应能力。
-
-\begin{figure}[t]
+\textbf{球面变形卷积。}表\ref{tab:婴儿数据集分区结果}展示了球面可变形卷积在不同结构下的不同使用效果。当使用更多的可变形卷积层时，Dice指标明显稳步提高。当球面FCN-8s的前6个卷积层为可变形卷积层，其他网络的前4个卷积层为可变形卷积层时，便可以得到最优结果。因此，在接下来的实验中，我们将在特征提取网络的前4个卷积层中使用可变形卷积层。为了更好地理解球面可变形卷积的原理，图\ref{fig:receptivefield_sampling_points}
+\begin{figure}[h]
 	\centering
 	\includegraphics[width=0.9\linewidth]{figure/receptivefield.eps}
-	\caption{从左到右：经过三个连续的卷积层，在两个不同的激活点（两个绿点分别在第一行的一个小的ROI和第二行的一个比较大的ROI上）上的1-ring卷积核的采样位置与皮层ROI分区图（即固定的3-ring的感受域），可变形的1-ring卷积核的采样位置与皮层ROI分区图，可变形的1-ring卷积核的采样位置与sulc特征图，可变形的1-ring卷积核的采样位置与curv图。我们可以看到对于不同的结构，感受域是如何自适应转换的。}
+	\caption{经过三个连续的卷积层，在两个不同的激活点（两个绿点分别在第一行的一个小的ROI和第二行的一个比较大的ROI上）上的1-ring卷积核的采样位置与皮层ROI分区图（即固定的3-ring的感受域），可变形的1-ring卷积核的采样位置与皮层ROI分区图，可变形的1-ring卷积核的采样位置与sulc特征图，可变形的1-ring卷积核的采样位置与curv图。可以看到对于不同的结构，感受域是如何自适应转换的。}
 	\label{fig:receptivefield_sampling_points}
 \end{figure}
+中展示了使用普通的1-ring卷积核和可变形的1-ring卷积核在连续3个卷积层后的采样点位置。由此我们可以观察到，在连续的可变形卷积层中，学习到的球面偏移量对不同的皮层结构具有很强的自适应能力。
 
+\textbf{球面变形池化。}如表\ref{tab:婴儿数据集分区结果}所示，与基准模型相比，单独使用球面可变形池化操作已经改善了基准模型的Dice指标。当同时使用球面可变形卷积和池化时，可以获得更加显著的改进，并得到所有网络的最佳变种模型。
+
+\textbf{模型复杂度和运行时间。}表\ref{tab:模型复杂度和运行时间结果}
 \begin{table}[h]
 		\caption{\label{tab:模型复杂度和运行时间结果}球面可变形网络与普通网络的模型复杂度和运行时间比较。}
 		\centering
 		\zihao{5}
-		\begin{tabularx}{0.85\linewidth}{c|X<{\centering}|X<{\centering}}
-			\hline
-			& 参数数量 (M)           & 运行时间 (ms)         \\
+		\begin{tabularx}{0.85\linewidth}{c X<{\centering} X<{\centering}}
+			\Xhline{2\arrayrulewidth}
+			网络结构 & 参数数量 (百万)           & 运行时间 (毫秒)         \\
 			\hline
 			Spherical U-Net23                & 26.86      &    20.3 \\
 			SDU-Net23    &  	26.89           		&   51.9   \\   
-			\hline
 			Spherical U-Net18               & 1.67                  	&	4.1	 \\
 			SDU-Net18   &	1.68	                &	13.2	  \\
-			\hline
 			Spherical SegNet                 & 	1.37                    &			3.5 \\
 			Spherical Deformable SegNet    &			1.39            &  	 12.2	 \\
-			\hline
 			Spherical FCN-8s                 &  		\textbf{1.01}                &	\textbf{3.0}	 \\
 			Spherical Deformable FCN-8s   & 	1.02                    &11.5  \\
-			\hline 
+			\Xhline{2\arrayrulewidth} 
 		\end{tabularx}
 \end{table}
+显示了球面可变形网络及其普通版本在NVIDIA Geforce GTX2080 Ti GPU上的模型复杂度和运行时间。我们可以看到，球面可变形操作只在模型参数和计算量上增加了一点点的负担。这说明性能的提升是来自于模型的几何变换建模能力，而不是单纯依赖增加模型参数。相反，球面U-Net23在增加了更多参数和运行时间的情况下也只取得了稍微好一点点的结果。因此，考虑到速度和实用性，我们把球面可变形U-Net18当作默认的SDU-Net模型，并在下面的实验中将它与其他流行的皮层分区方法进行比较。
 
-\textbf{球面变形池化。}如表\ref{tab:婴儿数据集分区结果}所示，与基准模型相比，单独使用球面可变形池化操作已经改善了基准模型的Dice指标。当同时使用球面可变形卷积和池化时，可以获得更加显著的改进，并得到所有网络的最佳变种模型。
-
-\textbf{模型复杂度和运行时间。}表\ref{tab:模型复杂度和运行时间结果}显示了球面可变形网络及其普通版本在NVIDIA Geforce GTX2080 Ti GPU上的模型复杂度和运行时间。我们可以看到，球面可变形操作只在模型参数和计算量上增加了一点点的负担。这说明性能的提升是来自于模型的几何变换建模能力，而不是单纯依赖增加模型参数。相反，球面U-Net23在增加了更多参数和运行时间的情况下也只取得了稍微好一点点的结果。因此，考虑到速度和实用性，我们把球面可变形U-Net18当作默认的SDU-Net模型，并在下面的实验中将它与其他流行的皮层分区方法进行比较。
-
-\begin{table}[t]
-		\caption{不同上采样方法在婴儿脑皮层表面分区任务上的对比结果}
+\textbf{上采样方法。}除了编码器部分的可变形卷积和池化外，实验还对比研究了SDU-Net的解码器部分的上采样方法，比如在\cite{jiang2018spherical,parvathaneni2019cortical}中使用的Fixed Indices，并将结果展示在了表\ref{tab:上采样方法比较}中。
+\begin{table}[h]
+		\caption{多种上采样方法在婴儿脑皮层表面分区任务上的对比结果}
 		\label{tab:上采样方法比较}
 		\centering
 		\zihao{5}
-		\begin{tabularx}{0.75\linewidth}{X<{\centering} | X<{\centering}}
-			\hline
-			& Dice (\%)        \\
+		\begin{tabularx}{0.75\linewidth}{X<{\centering}  X<{\centering}}
+			\Xhline{2\arrayrulewidth}
+			网络结构  & Dice (\%)        \\
 			\hline		  
 			SDU-Net-Linear Interpolation     &     92.91±1.52   \\
 			SDU-Net-Max-pooling Indices      &     86.69±3.74   \\
 			SDU-Net-Fixed Indices            &     92.85±1.98    \\
 			SDU-Net-Transposed Convolution   &	   \textbf{93.07±1.51}  \\
-			\hline					 
+			\Xhline{2\arrayrulewidth}					 
 		\end{tabularx}
 \end{table}
-
+表中的结果验证了球面转置卷积的优越性，这得益于它不仅可以上采样皮层球面，还可以同时训练其中的可学习上采样卷积核的参数，从而有效地解决了在球面上上采样数据的问题。但同时我们也注意到，与其他上采样方法相比，转置卷积带来的效果提升并不是很明显。一个可能的原因是对于其他3种上采样方法，我们在它们之后都增加了一个标准的1-ring球面卷积层，用于匹配通道数，这增加了他们的参数数量同时也提高了它们的学习能力。图\ref{fig:par_results_roiwise}展示了使用不同方法得到的每个ROI的平均Dice指标的直观比较，可以看到SDU-Net几乎在所有ROI中都获得了最高的Dice值。图\ref{fig:par_results_35}展示了使用不同方法得到的一个婴儿大脑的皮层分区结果，可以看到SDU-Net得到的分区结果与人工标记的金标准非常一致，没有什么孤立的噪声点。
 \begin{figure}[t]
 	\centering
 	\includegraphics[width=\linewidth]{figure/figure_roi_result.eps}
-	\caption{不同的方法得到的ROI-wise皮层分区Dice结果。图中每个ROI显示的值即为该ROI的平均Dice值。从左到右的方法依次是：(a) SegNet-Max Indices；(b) SegNet-Fixed Indices；(c) SegNet-Linear Interpolation；(d) Spherical FCN-8s；(e) 球面U-Net23；(f) SDU-Net。}
+	\caption{ROI-wise皮层分区Dice结果。图中每个ROI显示的值即为该ROI的平均Dice值。从左到右的方法依次是：(a) SegNet-Max Indices；(b) SegNet-Fixed Indices；(c) SegNet-Linear Interpolation；(d) Spherical FCN-8s；(e) 球面U-Net23；(f) SDU-Net。}
 	\label{fig:par_results_roiwise}
 \end{figure}
 
-\begin{figure}[t]
+\begin{figure}[h]
 	\centering
 	\includegraphics[width=\linewidth]{figure/figure_parcellation_result.eps}
-	\caption{不同方法在一个随机选择的婴儿大脑皮层上的分区结果。(a) SegNet-Max Indices；(b) SegNet-Fixed Indices；(c) SegNet-Linear Interpolation；(d) Spherical FCN-8s；(e) 球面U-Net23；(f) SDU-Net；(g) 金标准。}
+	\caption{在一个随机选择的婴儿大脑皮层上的分区结果。(a) SegNet-Max Indices；(b) SegNet-Fixed Indices；(c) SegNet-Linear Interpolation；(d) Spherical FCN-8s；(e) 球面U-Net23；(f) SDU-Net；(g) 金标准。}
 	\label{fig:par_results_35}
 \end{figure}
 
-\textbf{上采样方法。}除了编码器部分的可变形卷积和池化外，我们还对比研究了SDU-Net的解码器部分的上采样方法，比如在\cite{jiang2018spherical,parvathaneni2019cortical}中使用的Fixed Indices，并将结果展示在了表\ref{tab:上采样方法比较}中。表中的结果验证了球面转置卷积的优越性，这得益于它不仅可以上采样皮层球面，还可以同时训练其中的可学习上采样卷积核的参数，从而有效地解决了在球面上上采样数据的问题。但同时我们也注意到，与其他上采样方法相比，转置卷积带来的效果提升并不是很明显。一个可能的原因是对于其他3种上采样方法，我们在它们之后都增加了一个标准的1-ring球面卷积层，用于匹配通道数，这增加了他们的参数数量同时也提高了它们的学习能力。图\ref{fig:par_results_roiwise}展示了使用不同方法得到的每个ROI的平均Dice指标的直观比较，可以看到SDU-Net几乎在所有ROI中都获得了最高的Dice值。图\ref{fig:par_results_35}展示了使用不同方法得到的一个婴儿大脑的皮层分区结果，可以看到SDU-Net得到的分区结果与人工标记的金标准非常一致，没有什么孤立的噪声点。
 
-
+\textbf{与其他球面CNN的比较。}因为利用等角投影（Equirectangular projection, ERP）对球面进行离散化的方法\cite{s2018spherical,hu2017deep,esteves2018learning}显然不适合皮层表面的应用\cite{zhao2019spherical_ipmi,zhao2019spherical_isbi,lee2019spherephd}，所以我们只比较了目前比较流行的球面CNN\cite{wu2018registration,jiang2018spherical,seong2018geometric}。这些CNN都是直接在正二十面体离散化球面上进行卷积的。如表\ref{tab:与其他球面CNNs的比较}所示，本论文提出的SDU-Net的表现优于在切平面使用裁切补丁的分类方法\cite{wu2018registration}和使用全局差分滤波器的方法\cite{jiang2018spherical}。这表明我们的方法成功地从皮层表面的邻域中学习了多层的高级特征表示，而这正是以往工作\cite{wu2018registration,jiang2018spherical}所缺乏的。同时这些结果也再一次印证了SDU-Net比它的标准版本的球面U-Net\cite{zhao2019spherical_ipmi}的结果要好。最后，与图\ref{fig:fig_filters}中的2-ring卷积核和切平面空间中的矩形5$\times$5卷积核做了比较，可以看出虽然他们在特征学习方面也很有效，但本论文提出的1-ring卷积核在内存存储方面要小得多，而且在模型大小方面也更轻量。
 \begin{table}[t]
 		\caption{本论文提出的方法与其他球面CNN在婴儿脑皮层分区的结果比较。}
 		\label{tab:与其他球面CNNs的比较}
 		\centering
 		\zihao{5}
-		\begin{tabularx}{0.8\linewidth}{c | X<{\centering}}
-			\hline
-			& Dice (\%)        \\
+		\begin{tabularx}{0.8\linewidth}{c  X<{\centering}}
+			\Xhline{2\arrayrulewidth}
+			球面CNN & Dice (\%)        \\
 			\hline
 			Wu et al. \cite{wu2018registration}										&   87.06\\
 			Jiang et al. \cite{jiang2018spherical, parvathaneni2019cortical}		& 	75.15±3.09		\\
@@ -408,20 +398,19 @@ v_{n,i}'=\frac{v_{n,i}+E_{n,i}\overrightarrow{u_{n,i}}}{\Vert v_{n,i}+E_{n,i}\ov
 			球面U-Net18-1-ring卷积核 			&   92.28±1.70\\
 			球面U-Net18-2-ring卷积核 				    &   92.28±2.03\\
 			SDU-Net  											&	\textbf{93.07±1.51} \\
-			\hline 
+			\Xhline{2\arrayrulewidth} 
 		\end{tabularx}
 \end{table}
 
-\textbf{与其他球面CNN的比较。}因为利用等角投影（Equirectangular projection, ERP）对球面进行离散化的方法\cite{s2018spherical,hu2017deep,esteves2018learning}显然不适合皮层表面的应用\cite{zhao2019spherical_ipmi,zhao2019spherical_isbi,lee2019spherephd}，所以我们只比较了目前比较流行的球面CNN\cite{wu2018registration,jiang2018spherical,seong2018geometric}。这些CNN都是直接在正二十面体离散化球面上进行卷积的。如表\ref{tab:与其他球面CNNs的比较}所示，本论文提出的SDU-Net的表现优于在切平面使用裁切补丁的分类方法\cite{wu2018registration}和使用全局差分滤波器的方法\cite{jiang2018spherical}。这表明我们的方法成功地从皮层表面的邻域中学习了多层的高级特征表示，而这正是以往工作\cite{wu2018registration,jiang2018spherical}所缺乏的。同时这些结果也再一次印证了SDU-Net比它的标准版本的球面U-Net\cite{zhao2019spherical_ipmi}的结果要好。最后，我们还与图\ref{fig:fig_filters}中的2-ring卷积核和切平面空间中的矩形5$\times$5卷积核做了比较，可以看出虽然他们在特征学习方面也很有效，但本论文提出的1-ring卷积核在内存存储方面要小得多，而且在模型大小方面也更轻量。
-
-\begin{table}[t]
-		\caption{不同的大脑皮层分区方法在NAMIC数据集上得到的结果比较。在特征（features）一栏中，位置（loc）代表球上每个顶点的空间坐标，icurv指在Spherical Demons中额外使用的inflated curv特征。}
+\textbf{与其他大脑皮层分区方法的比较。}由于以前的大脑皮层分区方法\cite{yeo2009spherical,meng2015automatic,desikan2006automated}都是在配准后再训练分类器来对皮层表面的特征进行模式识别。于是我们先使用了Spherical Demons算法\cite{yeo2009spherical}对NAMIC数据集中的所有球形皮层表面进行了基于群体的配准，并分别在配准前后对球面进行了重采样。为了直接与他们的结果进行比较，本实验采用了不同于前几个对比实验的4折交叉验证策略，将数据分成了60\%用于训练，15\%用于验证，25\%用于测试。最终的结果是对4次模型得到的所有测试数据的Dice进行平均得到的。如表\ref{tab:与其他脑皮层分区方法比较}
+\begin{table}[h]
+		\caption{在NAMIC数据集上多个大脑皮层分区方法得到的结果比较。在特征（features）一栏中，位置（loc）代表球上每个顶点的空间坐标，icurv指在Spherical Demons中额外使用的inflated curv特征。}
 		\label{tab:与其他脑皮层分区方法比较}
 		\centering
 		\zihao{5}
-		\begin{tabularx}{\linewidth}{l|c|c|c|c}
-			\hline
-			& Registration & Augmentation & Features &  Dice (\%) \\
+		\begin{tabularx}{\linewidth}{lcccc}
+			\Xhline{2\arrayrulewidth}
+			方法 & 球面配准 & 数据增强 & 特征 &  Dice (\%) \\
 			\hline
 			Freesurfer \cite{desikan2006automated}         & Yes  & No   & Curv, sulc, loc                & 88.90 \\
 			Spherical Demons \cite{yeo2009spherical}   & Yes  & No   & Curv, sulc, icurv, loc & 89.60  \\
@@ -430,11 +419,10 @@ v_{n,i}'=\frac{v_{n,i}+E_{n,i}\overrightarrow{u_{n,i}}}{\Vert v_{n,i}+E_{n,i}\ov
 			SDU-Net	 & No & No & Curv, sulc & 88.95$\pm$2.16 \\
 			SDU-Net  & No & Yes & Curv, sulc & 89.41$\pm$1.79 \\
 			SDU-Net	 & Yes & No & Curv, sulc, loc & \textbf{90.46$\pm$1.30} \\
-			\hline 
+			\Xhline{2\arrayrulewidth} 
 		\end{tabularx}
 \end{table}
-
-\textbf{与其他大脑皮层分区方法的比较。}由于以前的大脑皮层分区方法\cite{yeo2009spherical,meng2015automatic,desikan2006automated}都是在配准后再训练分类器来对皮层表面的特征进行模式识别。于是我们先使用了Spherical Demons算法\cite{yeo2009spherical}对NAMIC数据集中的所有球形皮层表面进行了基于群体的配准，并分别在配准前后对球面进行了重采样。为了直接与他们的结果进行比较，本实验采用了不同于前几个对比实验的4折交叉验证策略，将数据分成了60\%用于训练，15\%用于验证，25\%用于测试。最终的结果是对4次模型得到的所有测试数据的Dice进行平均得到的。如表\ref{tab:与其他脑皮层分区方法比较}所示，在相同的实验条件下，本论文提出的SDU-Net的性能优于其他分类器，比最先进的Random Foreset + Graph cut\cite{meng2015automatic}方法的性能高出0.26\%。而且在计算复杂度方面，
+所示，在相同的实验条件下，本论文提出的SDU-Net的性能优于其他分类器，比最先进的Random Foreset + Graph cut\cite{meng2015automatic}方法的性能高出0.26\%。而且在计算复杂度方面，
 本论文提出的模型是端到端的，只需要约13.2ms（见表\ref{tab:模型复杂度和运行时间结果}）就可以对一个皮层表面完成分区，而其他传统的非深度学习方法通常还需要进行配准和额外的手工特征提取，这两步中的任何一步都需要花费更多的大量的时间。最后数据增强的结果验证了本论文提出的球面U-Net与SDU-Net具有更好的泛化能力，以及最开始定义的沿z轴的旋转不变性。
 
 
@@ -455,13 +443,13 @@ v_{n,i}'=\frac{v_{n,i}+E_{n,i}\overrightarrow{u_{n,i}}}{\Vert v_{n,i}+E_{n,i}\ov
 然后，我们在102个特征上逐个顶点地训练了以下的传统机器学习算法：线性回归（linear regression）、多项式回归（polynomial regression）、随机森林（random forest）和一个普通的4层神经网络（4-layer neural network）。线性回归假设每个顶点的皮层厚度的发展是线性的，多项式回归假设它与年龄间存在二阶多项式的关系。随机森林是一种可靠有效的非线性回归方法，适用于高维数据分析，已被证明是皮层厚度预测的当前最好的方法之一\cite{meng2017can}。4层神经网络是有两个隐藏层的多层感知器，每层分别有102、200、200和1个神经元，是一种朴素的传统的神经网络，没有任何其他花哨的设计。由此，上述每个机器学习算法会生成40962个模型，每个模型用于预测1岁时皮层上的每个顶点的thickness值，而本论文开发的球面U-Net只会生成一个模型。关于超参数选择，我们首先随机选取1000个顶点，然后使用网格搜索的方法（每个参数在1e-4到1e4的范围内等比例分为20份）来寻找在这1000个顶点上的最佳超参数，最后把这些超参数应用于所有顶点。参数选择和整个训练过程都持续了非常长的时间，大概1-3天。
 
 \begin{table}[t]
-		\caption{不同方法在婴儿皮层厚度预测上的结果比较。}
+		\caption{婴儿皮层厚度预测实验的结果比较。}
 		\label{tab:皮层厚度预测的结果}
 		\centering
 		\zihao{5}
-		\begin{tabularx}{0.8\linewidth}{l|X<{\centering}|X<{\centering}}
-			\hline
-			Methods                                                &              MAE (mm)          &  MRE (\%)  \\
+		\begin{tabularx}{0.8\linewidth}{l X<{\centering} X<{\centering}}
+			\Xhline{2\arrayrulewidth}
+			方法                                                &              MAE (mm)          &  MRE (\%)  \\
 			\hline   
 			Linear Regression                                      &       0.3595$\pm$0.0641        & 14.89$\pm$3.12 \\
 			Polynomial Regression                                  &     0.6067$\pm$0.0901          & 26.63$\pm$4.53\\
@@ -469,46 +457,40 @@ v_{n,i}'=\frac{v_{n,i}+E_{n,i}\overrightarrow{u_{n,i}}}{\Vert v_{n,i}+E_{n,i}\ov
 			Random Forest \cite{meng2017can}                     &    0.2950$\pm$0.0394           &  12.42$\pm$2.01 \\
 			球面U-Net \cite{zhao2019spherical_ipmi}        &    0.2817$\pm$0.0409           &   11.15$\pm$1.56  \\
 			SDU-Net                                                &   \textbf{0.2804$\pm$0.0515}   &  \textbf{11.10$\pm$2.08}  \\
-			\hline
+			\Xhline{2\arrayrulewidth}
 		\end{tabularx}
 \end{table}
 
 \subsection{实验结果}
 表\ref{tab:皮层厚度预测的结果}展示了SDU-Net和传统机器学习算法在皮层厚度预测方面的结果比较。本论文开发的SDU-Net在MAE和MRE方面都显著优于其他机器学习算法和我们之前提出的球面U-Net。以往工作中最好的Random Forest还牵扯到了复杂的手工特征提取和逐个顶点预测的超大计算量，而本论文的SDU-Net并不关心具体的任务和特征，依然取得了最好的效果，显示了其更高的有效性和易用性。另外一个值得注意的关键因素是SDU-Net是从分层的架构中有效地自动学习有用的特征，而其他的机器学习方法则是基于局部的手工特征来预测属性，这可能是造成结果差异的最主要原因之一。
 
-\begin{figure}[t]
+\begin{figure}[h]
 	\centering
-	\includegraphics[width=\linewidth]{figure/figure_pred_mean_error.eps}
-	\caption{使用不同方法得到的vertex-wise预测结果的平均误差图。}
+	\includegraphics[width=0.8\linewidth]{figure/figure_pred_mean_error.eps}
+	\caption{vertex-wise预测结果的平均误差图。}
 	\label{fig:thickness_prediction_mean_error}
 \end{figure}
 
-\begin{figure}[t]
+图\ref{fig:thickness_prediction_mean_error}显示了使用不同方法预测的1岁的皮层厚度图与1岁的金标准之间的顶点平均误差图。由此可以看到，SDU-Net获得的平均误差比其他方法更平滑且更小。图\ref{fig:thickness_prediction_result_one_scan}
+\begin{figure}[h]
 	\centering
 	\includegraphics[width=\linewidth]{figure/figure_pred_result_one_scan.eps}
-	\caption{使用不同方法预测一个随机选择的婴儿大脑皮层在1岁时的厚度（mm）结果。第一行显示的是0岁时的大脑皮层，1岁时的金标准，以及不同方法的预测结果。第二行显示的是误差图（mm）。}
+	\caption{预测一个随机选择的婴儿大脑皮层在1岁时的厚度（mm）结果。第一行显示的是0岁时的大脑皮层，1岁时的金标准，以及不同方法的预测结果。第二行显示的是误差图（mm）。}
 	\label{fig:thickness_prediction_result_one_scan}
 \end{figure}
-
-图\ref{fig:thickness_prediction_mean_error}显示了使用不同方法预测的1岁的皮层厚度图与1岁的金标准之间的顶点平均误差图。由此可以看到，SDU-Net获得的平均误差比其他方法更平滑且更小。图\ref{fig:thickness_prediction_result_one_scan}是分别应用线性回归、多项式回归、随机森林和SDU-Net来预测一个随机选取的婴儿脑皮层在1岁时的每个顶点的皮层厚度的结果。我们可以很明显地看到SDU-Net预测的皮层厚度比其他方法更加准确。
+是分别应用线性回归、多项式回归、随机森林和SDU-Net来预测一个随机选取的婴儿脑皮层在1岁时的每个顶点的皮层厚度的结果。我们可以很明显地看到SDU-Net预测的皮层厚度比其他方法更加准确。
 
 
 \section{讨论}
-本章的最初的目的是设计一个球面上的通用滤波器，可以很容易地使用并且扩展到各种大脑皮层表面处理与分析的任务中。设计的1-ring卷积核可以有效地从皮层表面数据中学习并提取高级的表征，就像2D自然图像领域的3$\times$3卷积核一样，然而即使1-ring卷积核在某种程度上已经是一个很有效的球面滤波器，它本质上还是仅限于模拟一小部分几何变换。因此，我们进一步提出了球面可变形1-ring卷积核和球面可变形卷积/池化，以显著提高网络的几何变换建模能力。这一步在医学影像领域显得格外重要，因为它可以替代昂贵的数据采集过程或各种数据增强方法。这样一来，皮层表面数据的处理与分析就可以更高效地受益于蓬勃发展的深度学习技术，为大脑皮层数据处理pipeline提供更快捷方便的工具。从这个角度来看，本章开发的方法有很多潜在的方向和应用，比较有趣的未来应用有将ResNet\cite{he2016deep}用来帮助分类脑部神经疾病并使用CAM技术\cite{zhou2015cnnlocalization}定位和寻找脑部疾病的生物标志物等。
+本章的最初的目的是设计一个球面上的通用滤波器，可以很容易地使用并且扩展到各种大脑皮层表面处理与分析的任务中。设计的1-ring卷积核可以有效地从皮层表面数据中学习并提取高级的表征，就像2D自然图像领域的3$\times$3卷积核一样，然而即使1-ring卷积核在某种程度上已经是一个很有效的球面滤波器，它本质上还是仅限于模拟一小部分几何变换。因此，我们进一步提出了球面可变形1-ring卷积核和球面可变形卷积/池化，以显著提高网络的几何变换建模能力。这一步在医学影像领域显得格外重要，因为它可以替代昂贵的数据采集过程或各种数据增强方法。这样一来，皮层表面数据的处理与分析就可以更高效地受益于蓬勃发展的深度学习技术，为大脑皮层数据处理pipeline提供更快捷方便的工具。从这个角度来看，本章开发的方法有很多潜在的方向和应用，比较有趣的未来应用有将ResNet\cite{he2016deep}用来帮助分类脑部神经疾病并使用CAM技术\cite{zhou2016learning}定位和寻找脑部疾病的生物标志物等。
 
 另外本章工作的一个局限性是我们在球面上定义的参考方向只能保证绕$z$轴的旋转不变性，并不能严格保证其他方向的旋转不变性，这意味着当球体沿$z$轴旋转时1-ring卷积核可以检测到相同的模式，而当球体跨$z$轴旋转时可能就检测不到了，这可能会导致极点区域的学习特征不够准确。不过对于当今的大数据及其金标准监督下的深度学习任务，例如这一章展示的皮层表面分区和皮层属性发育预测等，这完全是可以接受的，也是可以通过深层网络来学习克服的。然而，对于有一些无监督学习，这种设计可能需要重新考虑，并且需要一些特定的改进来满足其他旋转不变性的要求。
 
-最后，我们想强调这一章提出的球面U-Net或SDU-Net都是通用的模型。它们并不局限于特定的皮层特征处理或分析任务。它们也可以应用于其他拓扑亏格为0的器官和一些以球面数据为研究的计算机视觉任务中，为很多学习相关的大脑皮层数据处理与分析的研究提供了一个有价值的工具，从而可以帮助更好地研究和理解大脑发育、老化和疾病。
+最后，这一章提出的球面U-Net或SDU-Net都是通用的模型。它们并不局限于特定的皮层特征处理或分析任务。它们也可以应用于其他拓扑亏格为0的器官和一些以球面数据为研究的计算机视觉任务中，为很多学习相关的大脑皮层数据处理与分析的研究提供了一个有价值的工具，从而可以帮助更好地研究和理解大脑发育、老化和疾病。
 
 \section{本章小结}
-在本章中，我们提出了基于正二十面体离散化球面的1-ring卷积核，用来开发相应的球面运算以构建球面CNN。这个1-ring卷积核具有自然且直观的定义，使得它可以很容易地被解释并成功进行球面上的模式识别。随后本章将传统的U-Net和可变形卷积/池化扩展到球面上，并通过部署相应的球面操作构建了SDU-Net。最后本章在两个具有挑战性的任务上，即皮层表面分区和皮层表面属性发育预测，进行了大量广泛的对比试验与研究，从定量和定性的角度验证了提出的方法的鲁棒性、效率和准确性，证明了SDU-Net在计算上是高效的，在特征学习上是有效的，而且能够自动学习到有用的特征和自适应的感受域来出色地完成不同的任务。
+本章提出了基于正二十面体离散化球面的1-ring卷积核，用来开发相应的球面运算以构建球面CNN。这个1-ring卷积核具有自然且直观的定义，使得它可以很容易地被解释并成功进行球面上的模式识别。随后本章将传统的U-Net和可变形卷积/池化扩展到球面上，并通过部署相应的球面操作构建了SDU-Net。最后本章在两个具有挑战性的任务上，即皮层表面分区和皮层表面属性发育预测，进行了大量广泛的对比试验与研究，从定量和定性的角度验证了提出的方法的鲁棒性、效率和准确性，证明了SDU-Net在计算上是高效的，在特征学习上是有效的，而且能够自动学习到有用的特征和自适应的感受域来出色地完成不同的任务。
 
-\ifthenelse{\equal{\BlindReview}{true}}%
-        {
-        }
-        {
-        本章中球面U-Net的相关工作已在2019年的国际生物医学成像会议（The IEEE International Symposium on Biomedical Imaging, ISBI 2019）、第27届国际医学影像信息处理会议（The 27th international conference on Information Processing in Medical Imaging, IPMI 2019）上发表，并在2019年国际医学磁共振学会年会（2019 The International Society for Magnetic Resonance in Medicine Annual Meeting, ISMRM 2019）上做了口头报告。SDU-Net的相关工作在2021年元旦被IEEE Transactions on Medical Imaging录用，并在4月正式发表。
-        }
 
 
 
@@ -522,7 +504,6 @@ v_{n,i}'=\frac{v_{n,i}+E_{n,i}\overrightarrow{u_{n,i}}}{\Vert v_{n,i}+E_{n,i}\ov
 
 \chapter{基于三个正交球面U-Net的快速球面配准算法}\label{sec:基于三个正交球面U-Net的快速球面配准算法}
 
-\section{背景与动机}
 基于在绪论\ref{sec:大脑皮层表面配准}中介绍的球面配准算法，这一章主要研究如何使用深度学习方法更快更准确地进行球形大脑皮层表面的配准。考虑到以往球面配准算法的缺点，本章设计了一种可以灵活扩展到其他皮层属性甚至是多维皮层属性的球面配准算法，以更快的速度和保证平滑的球面变形场来进行球面配准。为此，在本章中，我们基于以下三个方面的考虑，开发了一个端到端的快速球面配准算法（Superfast Spherical Surface Registration, S3Reg）：（1）端到端的无监督学习框架；（2）能够保证球面拓扑属性的变形场；（3）球面CNN的选择。
 
 \textbf{端到端的无监督学习框架。}最近几年中，基于深度学习的方法极大地促进和加速了医学影像中的三维图像配准，尤其是基于GPU的实现的卷积神经网络（CNN）模型\cite{dalca2018unsupervised,balakrishnan2018unsupervised,niethammer2019metric}。早期的大多数配准方法\cite{krebs2017robust,rohe2017svf}多使用有监督学习，即通过传统的配准工具或模拟得出伪金标准变形场，然后用这些伪变形场训练配准网络。但这个方法在应用到真实数据时，会引入额外繁琐的预处理过程或其他潜在的偏差。为了解决这个问题，最近的一些工作\cite{dalca2018unsupervised,balakrishnan2018unsupervised,niethammer2019metric,de2019deep,zhou2020unsupervised}，包括VoxelMorph\cite{balakrishnan2018unsupervised}等，采用了端到端的学习策略，在无监督的学习框架中直接预测给定输入图像的变形场。我们注意到这些方法不仅能够为医学图像配准加速，同时它们的性能还与传统配准算法不相上下，此外它们还支持多种输入特征和输出损失函数的选择。
@@ -536,16 +517,13 @@ v_{n,i}'=\frac{v_{n,i}+E_{n,i}\overrightarrow{u_{n,i}}}{\Vert v_{n,i}+E_{n,i}\ov
 因此，本章将在S3Reg框架中采用球面U-Net作为骨干CNN，并针对配准任务进行了相应的改进，以解决极点附近的失真问题，得到更好的配准结果。具体来讲，在训练阶段，S3Reg将对极点区域进行掩盖和忽略，并针对三个正交方向联合训练三个互补的球面U-Net。在测试阶段，将三个模型的预测结果进行合并得到最终的变形场。
 
 由于S3Reg框架的灵活性，作为一种可选策略，本章还提出在训练过程中，当有皮层ROI分区图时，将皮层分区图的一致性整合到损失函数中。据我们所知，这是第一个利用ROI分区图的信息来改善大脑皮层表面配准的研究。综上所述，这一章工作的主要贡献包括：
+1. 本章提出了一种新型的端到端无监督学习框架，S3Reg，用于球形皮层表面配准，为选择配准特征和相似度指标提供了极大的灵活性，从而支持基于多模态特征的灵活配准。
+2. 本章展示了怎样将“缩放和平方”层有效地从欧氏空间扩展到球面空间，并将其整合到球面CNN中，以得到diffeomorphism的球面变形场，从而保证球面配准的拓扑正确性。
+3. 本章提出了一种新的球面CNN模型，该模型由三个互补的正交球面U-Net组成，其加权策略有效地解决了球面配准中固有的极点失真问题。
+4. 我们用大量实验证明了在配准成人和婴儿大脑皮层表面的多模态皮层特征时，与传统的配准算法相比，本章提出的方法可以获得更准确的配准结果，同时还只需要更少的时间（从1分钟减少到不到10秒）。
 
-\begin{enumerate}
-	\item 本章提出了一种新型的端到端无监督学习框架，S3Reg，用于球形皮层表面配准，为选择配准特征和相似度指标提供了极大的灵活性，从而支持基于多模态特征的灵活配准。
-	\item 本章展示了怎样将“缩放和平方”层有效地从欧氏空间扩展到球面空间，并将其整合到球面CNN中，以得到diffeomorphism的球面变形场，从而保证球面配准的拓扑正确性。
-	\item 本章提出了一种新的球面CNN模型，该模型由三个互补的正交球面U-Net组成，其加权策略有效地解决了球面配准中固有的极点失真问题。
-	\item 我们用大量实验证明了在配准成人和婴儿大脑皮层表面的多模态皮层特征时，与传统的配准算法相比，本章提出的方法可以获得更准确的配准结果，同时还只需要更少的时间（从1分钟减少到不到10秒）。
-\end{enumerate}
-
-\subsection{背景知识}
-\subsubsection{VoxelMorph框架}
+\section{背景知识}
+\subsection{VoxelMorph框架}
 VoxelMorph\cite{balakrishnan2018unsupervised}是一个建设性的、流行的非刚性图像配准框架。它使用CNN学习预测模板图像（atlas image），也叫固定图像（fixed image）和个体图像（subject image），也叫移动图像（moving image）之间的pixel-wise的非线性映射关系。在训练阶段，它的目标是通过最小化所有配对训练图像的相似度和平滑度损失函数，学习将一个图像的所有像素（或体素）映射到另一个图像上。在实际应用时，对于给定的新的配对图像，它就可以快速准确地通过推导这个学习到的配准函数来得到它们之间的变形场。
 
 假设$F$为固定图像，$M$为移动图像。VoxelMorph使用一个类似于U-Net的CNN来对配准函数$f_{\theta}(F,M)=\phi$建模，其中$\phi$是变形场，$\theta$是函数$f$的可学习参数。那么VoxelMorph框架的目标函数为：
@@ -559,7 +537,7 @@ VoxelMorph\cite{balakrishnan2018unsupervised}是一个建设性的、流行的�
 
 这个目标函数可以通过随机梯度下降法或Adam优化器\cite{kingma2014adam}以端到端的方式进行优化，而不需要事先获得真正的变形场，即金标准来监督它的学习。因此，这种基于无监督学习的配准框架在相似度度量和平滑度约束的选择上具有很大的灵活性。本章提出的S3Reg框架将建立在这一思想的基础上，利用它的灵活性，通过学习一个单一的参数函数$f$来配准所有的皮层表面。
 
-\subsubsection{微分同胚的变形场}\label{sec:微分同胚的变形场}
+\subsection{微分同胚的变形场}\label{sec:微分同胚的变形场}
 尽管本章提出的方法可以结合多种变形场表示，但我们选择使用diffeomorphism的变形场，具体来讲是用静态速度场表示的diffeomorphism的变形场。一个静态速度场$\overrightarrow{u}$与diffeomorphism的关系是通过指数映射$\phi=exp(\overrightarrow{u})$建立的。在这种情况下，它可以通过求解以下常微分方程（Ordinary Differential Equation, ODE）:
 \begin{equation}
 {\frac{\partial \phi(t)}{\partial t} }=\overrightarrow{u}(\phi(t))
@@ -571,27 +549,33 @@ VoxelMorph\cite{balakrishnan2018unsupervised}是一个建设性的、流行的�
 \phi^{(1/2^T)}=x+\overrightarrow{u}(x)/2^T,
 \end{equation}
 其中$x$表示空间位置。而对于球面配准而言，初始变形场并不能像这样简单地得到，本章工作将按照Spherical Demons中的基本思路与概念\cite{yeo2009spherical}来计算初始球面变形场，在\ref{sec:球面变形层}中做了详细说明。
-
-\begin{figure}[t]
+\begin{figure}[h]
 	\centering
 	\includegraphics[width=\linewidth]{figure/network.eps}
-	\caption{基于三个正交球面U-Net的S3Reg配准框架。该框架使用三个正交球面U-Net来学习三个不同方向的赤道区域的球面速度场。最终的速度场是通过旋转和结合这三个速度场得到的。这个速度场随后会被输入到球面变形层对$M$进行配准。另外我们还可以利用一些辅助信息来帮助训练，例如左下方的ROI分区图。}
+	\caption{基于三个正交球面U-Net的S3Reg配准框架。该框架使用三个正交球面U-Net来学习三个不同方向的赤道区域的球面速度场。最终的速度场通过旋转和结合这三个不同方向的球面速度场得到。这个速度场随后会被输入到球面变形层对$M$进行变形移动，便可以得到配准到模板球面空间的配准后球面。由此利用如图所示的损失函数就可以对整个网络进行有效的训练。另外还可以利用一些辅助信息来帮助训练，例如左下方的可选的ROI分区图一致性损失。}
 	\label{fig:S3Reg_network}
 \end{figure}
 
 \section{基于三个正交球面U-Net的配准框架}\label{sec:基于三个正交球面U-Net的配准框架}
 
 \subsection{整体网络结构}
-如图\ref{fig:S3Reg_network}所示，球面配准的参数函数$f_\theta(F,M)$是基于\ref{sec:基于球面U-Net的皮层分区与属性预测}\ref{sec:球面U-Net}节的球面U-Net结构。这里为了方便起见，我们假设$F$和$M$是包含单通道特征的球面皮层特征图，例如，sulc、curv、myelin或functional gradient density（FGD）等，尽管我们的方法可以很容易地扩展到高维特征。$F$和$M$是定义在球面$S^2$上并用正二十面体分形体\cite{fischl2012freesurfer}离散化的球重新采样得到的球面数据。球面U-Net的输入是$F$和$M$的特征串连，然后通过编码器部分重复的球面卷积和池化层对其进行编码，再由球面转置卷积和卷积层组成的解码器解码生成高分辨率的特征图。在最后一层，vertex-wise的加权用于将倒数第二层的多通道特征图映射到输出所需的2个通道，对应每一个顶点处的切平面上的速度向量。
+如图\ref{fig:S3Reg_network}所示，球面配准的参数函数$f_\theta(F,M)$是基于\ref{sec:基于球面U-Net的皮层分区与属性预测}\ref{sec:球面U-Net}节的球面U-Net结构。这里为了方便起见，假设$F$和$M$是包含单通道特征的球面皮层特征图，例如，sulc、curv、myelin或functional gradient density（FGD）等，尽管我们的方法可以很容易地扩展到高维特征。$F$和$M$是定义在球面$S^2$上并用正二十面体分形体\cite{fischl2012freesurfer}离散化的球重新采样得到的球面数据。球面U-Net的输入是$F$和$M$的特征串连，然后通过编码器部分重复的球面卷积和池化层对其进行编码，再由球面转置卷积和卷积层组成的解码器解码生成高分辨率的特征图。在最后一层，vertex-wise的加权用于将倒数第二层的多通道特征图映射到输出所需的2个通道，对应每一个顶点处的切平面上的速度向量。
 
-\begin{figure}[t]
+然而，正如在背景里介绍的，球面U-Net中的1-ring卷积核最初被设计为方位角旋转不变性，这将不可避免地导致极点附近的预测结果失真，如图\ref{fig:polar_distortiion}
+\begin{figure}[h]
 	\centering
 	\includegraphics[width=\linewidth]{figure/polar_distortiion.eps}
-	\caption{使用一个球面U-Net将moving surface配准到fixed surface的配准结果。第一行和第二行分别显示了赤道附近和北极附近的配准结果。我们可以看到，无论是网格表示的球面变形场还是用球面速度场表示的变形场，在极点附近都出现了极大的扭曲失真和拓扑错误。具体来说，第一行和第二行的moving surface的交叉三角形数量\cite{moller1997fast}分别为0和118个（总共有20480个三角形）。特别指出最后一列在靠近北极的地方显示出了较小的速度场幅度，证明了1-ring卷积核的设计在极点处固有的不连续性会导致网络无法学习到横跨极点的速度矢量。}
+	\caption{使用一个球面U-Net将moving surface配准到fixed surface的配准结果。第一行和第二行分别显示了赤道附近和北极附近的配准结果。可以看到无论是网格表示的球面变形场还是用球面速度场表示的变形场，在极点附近都出现了极大的扭曲失真和拓扑错误。具体来说，第一行和第二行的moving surface的交叉三角形数量\cite{moller1997fast}分别为0和118个（总共有20480个三角形）。特别指出最后一列在靠近北极的地方显示出了较小的速度场幅度，证明了1-ring卷积核的设计在极点处固有的不连续性会导致网络无法学习到横跨极点的速度矢量。}
 	\label{fig:polar_distortiion}
 \end{figure}
-
-然而，正如在背景里介绍的，球面U-Net中的1-ring卷积核最初被设计为方位角旋转不变性，这将不可避免地导致极点附近的预测结果失真，如图\ref{fig:polar_distortiion}中所展示的使用两个仿真球面配准得到的结果。造成这种失真的根本原因是，在卷积运算中，1-ring卷积核的滑动窗口在纬度上是沿0°到360°进行滑动，但在经度上只沿0°到180°进行滑动，即从北极到南极，这是为了在球面上建立一个参考方向，即本设计中的$z$轴。因此，1-ring卷积核在跨极点滑动窗口时会调转方向，这就导致了极点处的不连续性。由于预测极点区域的变形场会导致变形，而预测赤道区域的变形场则不会，我们便将球面沿$y$轴旋转了90°，并只预测赤道区域周围的变形场。这样一来，原来极点区域的变形场也可以被有效地预测出来，因为旋转后原极点区域就变成了赤道区域了。预测出变形场以后，我们再把它旋转回原来的极点区域，这样就可以得到整个球面的变形场了，从而解决了极点区域的失真问题。但是，如果只旋转球面一次，那么在某些区域的变形场会被预测两次，但在其他区域只预测一次。这将导致不同区域在网络中拥有不同的权重（2:1），甚至产生有偏差的结果。为了使权重和结果更加可靠并具有无偏，我们把球沿$z$轴又旋转了一次。现在，变形场在大部分区域都被预测了两次，在其余的小区域被预测了三次，如图\ref{fig:S3Reg_index}所示。因此，网络会更加容易地训练和学习来克服这个有偏的权重。需要注意的是，理论上任意的旋转，只要可以将极点区域移动到与原极点区域不重合的地方，都是可以的，但有些旋转把球转到了非正交区域，使得整个球的变形场合并过程很复杂，就明显不太适合。因此有些旋转方法并不有效，具体原因如下：（1）非正交的旋转造成的变形场的旋转和合并计算更加复杂；（2）不同区域之间的权重更加难以平衡。因为子网络越多，预测变形场的次数越多，理应会更准确，但是同时速度也会变慢。最后基于我们的经验，发现沿$x$、$y$、$z$轴的3个正交球面既考虑到了网络的准确性也照顾到了网络的计算复杂度，是一个最好的折中结果。
+中所展示的使用两个仿真球面配准得到的结果。造成这种失真的根本原因是，在卷积运算中，1-ring卷积核的滑动窗口在纬度上是沿0°到360°进行滑动，但在经度上只沿0°到180°进行滑动，即从北极到南极，这是为了在球面上建立一个参考方向，即本设计中的$z$轴。因此，1-ring卷积核在跨极点滑动窗口时会调转方向，这就导致了极点处的不连续性。由于预测极点区域的变形场会导致变形，而预测赤道区域的变形场则不会，我们便将球面沿$y$轴旋转了90°，并只预测赤道区域周围的变形场。这样一来，原来极点区域的变形场也可以被有效地预测出来，因为旋转后原极点区域就变成了赤道区域了。预测出变形场以后，我们再把它旋转回原来的极点区域，这样就可以得到整个球面的变形场了，从而解决了极点区域的失真问题。但是，如果只旋转球面一次，那么在某些区域的变形场会被预测两次，但在其他区域只预测一次。这将导致不同区域在网络中拥有不同的权重（2:1），甚至产生有偏差的结果。为了使权重和结果更加可靠并具有无偏，把球沿$z$轴再旋转了一次，现在变形场在大部分区域都被预测了两次，在其余的小区域被预测了三次，如图\ref{fig:S3Reg_index}
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=0.67\linewidth]{figure/index.eps}
+	\caption{(a) 用于解决极点失真问题的不同子网络的掩模图。深蓝色区域将被每个子网络训练和预测，而白色区域将被忽略。(b)不同子网络共同训练的重叠区域。}
+	\label{fig:S3Reg_index}
+\end{figure}
+所示。因此，网络会更加容易地训练和学习来克服这个有偏的权重。需要注意的是，理论上任意的旋转，只要可以将极点区域移动到与原极点区域不重合的地方，都是可以的，但有些旋转把球转到了非正交区域，使得整个球的变形场合并过程很复杂，就明显不太适合。因此有些旋转方法并不有效，具体原因如下：（1）非正交的旋转造成的变形场的旋转和合并计算更加复杂；（2）不同区域之间的权重更加难以平衡。因为子网络越多，预测变形场的次数越多，理应会更准确，但是同时速度也会变慢。最后基于我们的经验，发现沿$x$、$y$、$z$轴的3个正交球面既考虑到了网络的准确性也照顾到了网络的计算复杂度，是一个最好的折中结果。
 
 具体来讲，假设对于一个有$N$个顶点的球面${\{v_n\}}_{n=1}^N$，我们通过沿$y$轴旋转\ang{90}得到第二个球面${v_n^2}$，然后通过沿$z$轴旋转\ang{90}得到第三个球面${v_n^3}$，即：$v_n^2=R_y(\pi/2)v_n$, $v_n^3=R_z(\pi/2)v_n^2$，其中$R$是旋转矩阵，${v_n^i}$代表第$i$个球上的顶点。为了方便起见，现在也将${\{v_n\}}_{n=1}^N$表示为${\{v_n^1\}}_{n=1}^N$。然后，我们为3个方向的球面分别搭建了一个子网络，如图\ref{fig:S3Reg_network}所示，称作3个正交球面U-Net结构。每个子网络将会预测一个单独的速度场（图\ref{fig:S3Reg_network}中的$\overrightarrow{u^1}$、$\overrightarrow{u^2}$、$\overrightarrow{u^3}$），用于配准相应的旋转后的moving surface和fixed surface。然后在每个子网络中，我们设计了一个掩码用来忽略极点附近顶点的影响：$
 	W(v)=\begin{cases} 
@@ -611,12 +595,6 @@ $, 其中$r$是球$S^2$的半径，$v(z)$是顶点$v$的$z$值。图\ref{fig:S3R
 \end{equation}
 其中，$E_n=[\overrightarrow{e_n^1}, \overrightarrow{e_n^2}]$ 是$v_n$处切平面上的一个3$\times$2的正交基，$E_n\overrightarrow{u_n}$将切平面空间的向量映射到三维空间，$O^{i,j}$表示第$i$个和第$j$个网络的重叠区域，例如：$O^{1,2}=\{n|W(v_n^1)=1 \: and \: W(v_n^2)=1\}$，其中$|O^{i,j}|$代表$O^{i,j}$中的顶点个数。
 
-\begin{figure}[t]
-	\centering
-	\includegraphics[width=0.7\linewidth]{figure/index.eps}
-	\caption{(a) 用于解决极点失真问题的不同子网络的掩模图。深蓝色区域将被每个子网络训练和预测，而白色区域将被忽略。(b)不同子网络共同训练的重叠区域。}
-	\label{fig:S3Reg_index}
-\end{figure}
 
 \subsection{球面变形操作}\label{sec:球面变形层}
 本小节将展示用Spherical Demons\cite{yeo2009spherical}中的基本理论来导出球面变形场的表达式。变形场$\phi=\{\phi(v_n)\}_{n=1}^N$表示将一个点$v_n\in S^2 $映射到另一个点$\phi(v_n)\in S^2$。正如在背景知识部分介绍的，首先用一个静态速度场$\overrightarrow{u}$来参数化$\phi$，即$\phi=exp(\overrightarrow{u})$。静态速度场$\overrightarrow{u}=\{\overrightarrow{u_n}\}_{n=1}^N$是由上一小节的三个正交球面U-Net结构预测得到的，大小为$N\times2$。然后我们基于$\overrightarrow{u}$使用“缩放和平方”层来计算球面变形场$\phi$。第一步计算初始变形场$\phi^{(1/2^T)}$：
@@ -649,14 +627,14 @@ $, 其中$r$是球$S^2$的半径，$v(z)$是顶点$v$的$z$值。图\ref{fig:S3R
 \end{equation}
 其中$cov(\cdot,\cdot)$是协方差，$\sigma$是标准差，$\lambda_{cc}$是PCC项的权重，
 
-\begin{figure}[t]
+虽然以上介绍的方法可以保证S3Reg配准框架的拓扑正确，但它仍然是基于初始变形场的，这就要求初始变形场足够小且光滑\cite{yeo2009spherical}，否则，仍然有可能得到拓扑不正确的变形场，如图\ref{fig:polar_distortiion}中第二行所展示的那样。因此，在获得了切平面速度场的情况下，本论文基于1-ring卷积核提出了一个新的球面算子$\nabla_s$，见图\ref{fig:gradient_kernel}，
+\begin{figure}[h]
 	\centering
 	\includegraphics[width=0.35\columnwidth]{figure/gradient_kernel.eps}
-	\caption{在球面上近似球面特征梯度的球面算子$\nabla_s$。}
+	\caption{球面上近似计算球面特征梯度的算子$\nabla_s$。}
 	\label{fig:gradient_kernel}
 \end{figure}
-
-虽然以上介绍的方法可以保证S3Reg配准框架的拓扑正确，但它仍然是基于初始变形场的，这就要求初始变形场足够小且光滑\cite{yeo2009spherical}，否则，仍然有可能得到拓扑不正确的变形场，如图\ref{fig:polar_distortiion}中第二行所展示的那样。因此，在获得了切平面速度场的情况下，本论文基于1-ring卷积核提出了一个新的球面算子$\nabla_s$，见图\ref{fig:gradient_kernel}，用来近似球面上的特征梯度计算，从而可以显式地约束速度场的平滑性。因此，球面速度场的平滑损失为${\mathcal{L}}_{smooth}(\overrightarrow{u})=\frac{1}{N} \sum_{n=1}^{N} |\nabla_s Q(\overrightarrow{u_n}) | $，其中$Q(\overrightarrow{u_n})$代表顶点$v_n$的局部1-ring速度向量场。这个损失函数即可以惩罚$\overrightarrow{u_n}$的局部空间不平滑的变化。而且，它可以通过球面U-Net里定义的标准球面1-ring卷积层得到，在计算上非常方便快捷。
+用来近似球面上的特征梯度计算，从而可以显式地约束速度场的平滑性。因此，球面速度场的平滑损失为${\mathcal{L}}_{smooth}(\overrightarrow{u})=\frac{1}{N} \sum_{n=1}^{N} |\nabla_s Q(\overrightarrow{u_n}) | $，其中$Q(\overrightarrow{u_n})$代表顶点$v_n$的局部1-ring速度向量场。这个损失函数即可以惩罚$\overrightarrow{u_n}$的局部空间不平滑的变化。而且，它可以通过球面U-Net里定义的标准球面1-ring卷积层得到，在计算上非常方便快捷。
 
 \subsection{用于辅助配准的ROI分区信息}
 ROI分区图将皮层表面划分为若干个感兴趣的小的区域，即ROI，并为每个顶点分配一个ROI的标签，从而为后续大脑皮层分析提供丰富的皮层解剖区域信息。基于结构或功能特征的皮层分区图有时在配准开始前就已经存在了。它可以是由神经科学家手动标记的，也可以是算法自动得到的\cite{zhao2019spherical_isbi}。得益于S3Reg配准框架的灵活性，如图\ref{fig:S3Reg_network}所展示的，我们可以在训练过程中将分区图这样的特征信息作为额外的辅助信息整合到整个配准框架中。
@@ -695,26 +673,27 @@ Dice(p_F^k, p_M^k \circ \phi) = 2 \frac{| p_F^k \cap (p_M^k \circ \phi)|}{|p_F^k
 \subsubsection{数据和预处理}\label{sec:S3Reg的数据和预处理}
 对于成人大脑MRI数据，我们使用了NAMIC大脑皮层数据集\cite{namic}，并只在大脑左半球上进行实验，因为右半球是类似的。该数据集由39个成人大脑皮层数据组成，使用了FreeSurfer\cite{dale1999cortical}从他们各自的MR图像中重建。每个皮层表面都被映射到了球面上，表示为一个球面图像，每个顶点有2个基于皮层褶皱的几何特征，即sulc和curv\cite{fischl2012freesurfer}。和在\ref{sec:大脑皮层分区实验}节大脑皮层分区实验中介绍的一样，curv是精细度量皮层褶皱折叠模式的指标，而sulc是粗糙地度量皮层褶皱折叠模式的指标。每个皮层表面都由神经解剖学家基于主要的大脑沟回模式\cite{desikan2006automated}手动分成了35个ROI。在本实验中，我们使用FreeSurfer的大脑皮层Atlas\cite{fischl2012freesurfer}作为配准的模板，即固定的皮层表面（$F$）。因为这个数据集有人工专家标记的金标准ROI分区图，使用这个数据集做实验的目的就是验证本章提出的方法在皮层表面分区上的有效性，同时本小节还会通过一些对比试验来全面展示S3Reg的各个部分的有效性。
 
-我们还在另一个婴儿数据集上验证了本章提出的方法。这个婴儿数据集是在UNC医院采集的，有102个1岁左右的婴儿大脑MR图像数据。婴儿大脑皮层表面使用了婴儿专用的pipeline\cite{li2015construction,li2014measuring,wang2018volume}（iBEAT V2.0 Cloud, http://www.ibeat.cloud/）进行重建，然后每个皮层表面被映射到了球面上。每个皮层表面都含有多模态的特征，包括2个几何形态学特征，即sulc和curv，另外还有2个功能特征，即髓鞘含量（Myelin content, 简称myelin）和功能梯度密度（functional gradient density，简称FGD）。接着这些婴儿大脑皮层表面使用了\ref{sec:大脑皮层分区实验}中的方法得到了自动的ROI分区图。Myelin和FGD都是可靠且有意义的功能特征，与皮层功能区域密切相关\cite{glasser2016multi}。Myelin是使用T1w/T2w图像得到的。FGD使用了以下方法计算得到。首先在婴儿自然睡眠期间采集得到婴儿静息态fMRI（resting-state fMRI, rfMRI）数据。然后除了使用常规的HCP fMRI处理步骤\cite{glasser2013minimal}外，我们还特别采用了以下策略\cite{hu2020disentangled}来处理这些fMRI数据：（1）在原生图像空间中完成功能信号的一次性重采样和去噪；（2）基于深度学习的噪声成分去除，以实现快速鲁棒的fMRI去噪，然后提取了皮层表面各顶点的fMRI时间序列，再使用\cite{huang2020construction,gordon2016generation}中的方法在皮层表面计算出FGD图。另外，用于配准该数据集的模板是由其他83个年龄相近的个体使用Spherical Demons\cite{yeo2009spherical}经过group-wise配准后平均得到的。由于这个婴儿数据集没有金标准的ROI分区图，该组实验的目的即在于广泛地验证本章方法在多模态特征配准上的泛化能力。
+我们还在另一个婴儿数据集上验证了本章提出的方法。这个婴儿数据集是在UNC医院采集的，有102个1岁左右的婴儿大脑MR图像数据。婴儿大脑皮层表面使用了婴儿专用的pipeline\cite{li2015construction,li2014measuring,wang2018volume}（iBEAT V2.0 Cloud, http://www.ibeat.cloud/）进行重建，然后每个皮层表面被映射到了球面上。每个皮层表面都含有多模态的特征，包括2个几何形态学特征，即sulc和curv，另外还有2个功能特征，即髓鞘含量（Myelin content, 简称myelin）和功能梯度密度（functional gradient density，简称FGD）。接着这些婴儿大脑皮层表面使用了\ref{sec:大脑皮层分区实验}中的方法得到了自动的ROI分区图。Myelin和FGD都是可靠且有意义的功能特征，与皮层功能区域密切相关\cite{glasser2016multi}。Myelin是使用T1w/T2w图像得到的。FGD使用了以下方法计算得到。首先在婴儿自然睡眠期间采集得到婴儿静息态fMRI（resting-state fMRI, rfMRI）数据。然后除了使用常规的HCP fMRI处理步骤\cite{glasser2013minimal}外，我们还特别采用了以下策略\cite{hu2020disentangled}来处理这些fMRI数据：（1）在原生图像空间中完成功能信号的一次性重采样和去噪；（2）基于深度学习的噪声成分去除，以实现快速鲁棒的fMRI去噪，然后提取了皮层表面各顶点的fMRI时间序列，再使用\cite{huang2020construction,gordon2016generation}中的方法在皮层表面计算出FGD图。另外，用于配准该数据集的模板是由其他83个年龄相近的个体使用Spherical Demons\cite{yeo2009spherical}经过group-wise配准后平均得到的。由于这个婴儿数据集没有金标准的ROI分区图，该组实验的目的即在于额外地验证本章方法在多模态特征配准上的泛化能力。
 
 \subsubsection{传统方法的实现细节}\label{sec:配准的基准方法}
-我们使用了Spherical Demons\footnote{https://sites.google.com/site/yeoyeo02/software/sphericaldemonsrelease。}、MSM\footnote{我们使用了fsl/6.0.0中的MSM。}和FreeSurfer\footnote{我们用的是FreeSurfer/7.1.0。}的官方代码来进行它们的实验。在这些非刚性配准方法开始之前，我们使用了一个基于旋转的刚性配准来完成初始化，就像在Spherical demons\cite{yeo2009spherical}和FreeSurfer\cite{fischl2012freesurfer}中做的一样，即沿着每个轴进行穷举搜索，共进行了4轮搜索，每轮的搜索范围分别为[-64°, 64°]、[-32°, 32°]、[-16°, 16°]和[-8°, 8°]。用于评价旋转后的球面和固定球面的特征相似度的指标是sulc的均方误差。然后我们在默认参数下运行Spherical Demons和FreeSurfer，即将两个球面在4个级别的正二十面体分形球面上进行配准（4，5，6，7级，分别有2562，10242，40962，163842个顶点），分别用来配准sulc，sulc，sulc和curv。对于功能特征的配准，基于sulc配准的结果，再在第6级分辨率上使用了与curv相同的超参数配置来配准婴儿脑皮层表面的功能特征。对于MSM，由于默认参数不能得到满意的结果，我们在每个数据集上使用了不同的调参后优化的参数，即将它默认的正则化项参数变大，输入平滑项变小了一点。对于2个几何特征（先是sulc，然后是curv），仍然是默认地运行在4个分辨率级别（sulc为4，4，5，6，然后curv为4，5，5，6），每个级别使用了3次迭代。对于功能特征，与Spherical Demons和FreeSurfer一致，MSM使用了与curv相同的配置，但只在第6级分辨率上运行。为了与我们的方法有一个公平的比较，上述传统方法的实验都在英特尔酷睿i7-8700 CPU上运行。
+本实验使用了Spherical Demons (https://sites.google.com/site/yeoyeo02/software/sp
+hericaldemonsrelease)、MSM (fsl/6.0.0中的MSM命令)和FreeSurfer (FreeSurfer/7.1.0)的官方代码来进行它们的实验。在这些非刚性配准方法开始之前，我们使用了一个基于旋转的刚性配准来完成初始化，就像在Spherical demons\cite{yeo2009spherical}和FreeSurfer\cite{fischl2012freesurfer}中做的一样，即沿着每个轴进行穷举搜索，共进行了4轮搜索，每轮的搜索范围分别为[-64°, 64°]、[-32°, 32°]、[-16°, 16°]和[-8°, 8°]。用于评价旋转后的球面和固定球面的特征相似度的指标是sulc的均方误差。然后我们在默认参数下运行Spherical Demons和FreeSurfer，即将两个球面在4个级别的正二十面体分形球面上进行配准（4，5，6，7级，分别有2562，10242，40962，163842个顶点），分别用来配准sulc，sulc，sulc和curv。对于功能特征的配准，基于sulc配准的结果，再在第6级分辨率上使用了与curv相同的超参数配置来配准婴儿脑皮层表面的功能特征。对于MSM，由于默认参数不能得到满意的结果，我们在每个数据集上使用了不同的调参后优化的参数，即将它默认的正则化项参数变大，输入平滑项变小了一点。对于2个几何特征（先是sulc，然后是curv），仍然是默认地运行在4个分辨率级别（sulc为4，4，5，6，然后curv为4，5，5，6），每个级别使用了3次迭代。对于功能特征，与Spherical Demons和FreeSurfer一致，MSM使用了与curv相同的配置，但只在第6级分辨率上运行。为了与我们的方法有一个公平的比较，上述传统方法的实验都在英特尔酷睿i7-8700 CPU上运行。
 
-\subsubsection{本论文方法的实现细节}
-我们使用了PyTorch\cite{paszke2017automatic}工具包实现了本章提出的S3Reg配准框架，并使用Adam优化器\cite{kingma2014adam}，用1e-5的学习率训练了模型100个epochs。sulc和curv的特征值首先通过减去平均值并除以标准差来进行归一化处理。与一般的单次3D图像配准不同的是，皮层表面配准更倾向于使用由粗到细的方式在多个分辨率下配准多个特征，正如在以前的方法\ref{sec:配准的基准方法}中执行的那样。因此，S3Reg也使用了由粗到细的多层次配准算法，作为默认的S3Reg配准算法，即在4个分辨率级别（3，4，5，6）分别训练4个模型，作为默认的几何特征配准模型，称为S3Reg-multi-sulc-curv，分别用于配准sulc，sulc，sulc和curv。注意这4个模型是单独分开进行训练的。具体来讲，我们首先在分辨率比较低的球面上训练一个用于配准sulc特征的低分辨率模型（3级）。该网络训练完成后，我们会保存该模型，并预测出在第3级分辨率上配准sulc的变形场。然后将第3级的变形场上采样到第4级，并用于配准第4级的皮层表面。然后，在第4级训练新的模型，用于配准在刚刚移动后得到的表面上的新的特征。随后重复这个过程，直到第6级配准curv完成。对于从当前分辨率到下一个分辨率变形场的上采样操作，S3Reg依然使用重心插值法去生成新的移动顶点，然后再将它们映射到球面上。对于球面上的下采样操作，S3Reg提取低分辨率球面上的顶点（及其特征），便可以从高分辨率球面上得到下采样的球面。在这个下采样过程之前，我们没有应用任何平滑处理，这一点不同于MSM\cite{robinson2014msm}，因为我们发现下采样过程中的球面特征平滑操作对最后的结果并没有显著影响。为了显示多级分层次配准的优越性，我们另外训练了几个模型，只在第6个分形体球面上配准sulc，称作S3Reg-single-sulc模型，然后在第6级上再配准curv，叫作S3Reg-single-sulc-curv。为了进一步显示可选的辅助ROI分区图所带来的改进，在S3Reg-multi-sulc-curv的最后一级增加ROI分区图一致性损失函数便可得到S3Reg-multi-sulc-curv+parc模型。对于功能特征，S3Reg依然使用与Spherical Demons和MSM中相同的配准策略。
+\subsubsection{本论文提出的S3Reg的实现细节}
+本论文提出的S3Reg配准框架是使用PyTorch\cite{paszke2017automatic}工具包实现的，并使用Adam优化器\cite{kingma2014adam}和1e-5的学习率训练了100个epochs。sulc和curv的特征值首先通过减去平均值并除以标准差来进行归一化处理。与一般的单次3D图像配准不同的是，皮层表面配准更倾向于使用由粗到细的方式在多个分辨率下配准多个特征，正如在以前的方法\ref{sec:配准的基准方法}中执行的那样。因此，S3Reg也使用了由粗到细的多层次配准算法，作为默认的S3Reg配准算法，即在4个分辨率级别（3，4，5，6）分别训练4个模型，作为默认的几何特征配准模型，称为S3Reg-multi-sulc-curv，分别用于配准sulc，sulc，sulc和curv。注意这4个模型是单独分开进行训练的。具体来讲，我们首先在分辨率比较低的球面上训练一个用于配准sulc特征的低分辨率模型（3级）。该网络训练完成后，我们会保存该模型，并预测出在第3级分辨率上配准sulc的变形场。然后将第3级的变形场上采样到第4级，并用于配准第4级的皮层表面。然后，在第4级训练新的模型，用于配准在刚刚移动后得到的表面上的新的特征。随后重复这个过程，直到第6级配准curv完成。对于从当前分辨率到下一个分辨率变形场的上采样操作，S3Reg依然使用重心插值法去生成新的移动顶点，然后再将它们映射到球面上。对于球面上的下采样操作，S3Reg提取低分辨率球面上的顶点（及其特征），便可以从高分辨率球面上得到下采样的球面。在这个下采样过程之前，我们没有应用任何平滑处理，这一点不同于MSM\cite{robinson2014msm}，因为我们发现下采样过程中的球面特征平滑操作对最后的结果并没有显著影响。为了显示多级分层次配准的优越性，我们另外训练了几个模型，只在第6个分形体球面上配准sulc，称作S3Reg-single-sulc模型，然后在第6级上再配准curv，叫作S3Reg-single-sulc-curv。为了进一步显示可选的辅助ROI分区图所带来的改进，在S3Reg-multi-sulc-curv的最后一级增加ROI分区图一致性损失函数便可得到S3Reg-multi-sulc-curv+parc模型。对于功能特征，S3Reg依然使用与Spherical Demons和MSM中相同的配准策略。
 
 本章的实验使用了60\%的数据进行训练，10\%的数据进行验证，30\%的数据进行测试。用于训练每一级模型的$\lambda_{cc}$和$\lambda_{con}$始终为1。训练每一级配准sulc模型的$\lambda_s$分别为8、10、12、16，第6级的curv、myelin和FGD为40。$\lambda_{parc}$在第6级是10。所有实验都在一台拥有NVIDIA RTX2080 Ti GPU和Intel Core i7-8700 CPU的PC上运行。
 
 \subsubsection{评价指标}\label{sec:配准的评价指标}
-为了定量评估配准性能，我们使用公式\ref{eq:Dice}计算了广泛使用的ROI分区图的Dice指标\cite{dice1945measures}。由于更好的配准会让解剖边界达到更高的一致性，因此更大的Dice值表明更好的配准结果。需要注意的是，这里的Dice是直接基于两个配准后的ROI分区图计算的，而不是手工标记的分区图和使用额外分类器基于配准后的特征预测得到的分区图之间的Dice。因为本章内容更关心配准方法的公平比较，而不想牵扯到其他任何的分类器。此外，我们还计算了配准后两个皮层表面特征图的平均绝对误差（Mean Absolute Error, MAE）和皮尔逊相关系数（PCC），用来直接评价配准后特征的对齐情况。因此，较高的PCC和较低的MAE都表示更好的配准结果。因为配准后所有的皮层表面都应该在同一个空间，我们就计算了测试集中的任意两个配准后的皮层表面的以上指标，并展示了它们的平均结果。另外由于损失函数也使用了MSD和PCC来训练网络，这里的MAE和PCC只是为评价组内数据的空间归一化准确度提供一个额外的指标。作为一个更无偏的衡量标准，Dice是一个更可靠更有说服力的评价指标，可以用来决定哪一种方法具有更加优秀的性能\cite{rohlfing2011image}。
+为了定量评估配准性能，本实验采用公式\ref{eq:Dice}计算了广泛使用的ROI分区图的Dice指标\cite{dice1945measures}。由于更好的配准会让解剖边界达到更高的一致性，因此更大的Dice值表明更好的配准结果。需要注意的是，这里的Dice是直接基于两个配准后的ROI分区图计算的，而不是手工标记的分区图和使用额外分类器基于配准后的特征预测得到的分区图之间的Dice。因为本章内容更关心配准方法的公平比较，而不想牵扯到其他任何的分类器。此外，我们还计算了配准后两个皮层表面特征图的平均绝对误差（Mean Absolute Error, MAE）和皮尔逊相关系数（PCC），用来直接评价配准后特征的对齐情况。因此，较高的PCC和较低的MAE都表示更好的配准结果。因为配准后所有的皮层表面都应该在同一个空间，我们就计算了测试集中的任意两个配准后的皮层表面的以上指标，并展示了它们的平均结果。另外由于损失函数也使用了MSD和PCC来训练网络，这里的MAE和PCC只是为评价组内数据的空间归一化准确度提供一个额外的指标。作为一个更无偏的衡量标准，Dice是一个更可靠更有说服力的评价指标，可以用来决定哪一种方法具有更加优秀的性能\cite{rohlfing2011image}。
 
 \begin{table}[h]
-		\caption{在NAMIC数据集上不同方法的配准性能比较。*表示与S3Reg-multi-sulc-curv相比有统计学上的显著差异（p$<$0.05）。粗体和斜体数字分别表示最好和第二好的结果。}
+		\caption{在NAMIC数据集上的配准性能比较。*表示与S3Reg-multi-sulc-curv相比有统计学上的显著差异（$p<$0.05）。粗体和斜体数字分别表示最好和第二好的结果。}
 		\label{tab:NAMIC成人数据集的配准结果比较}
 		\centering
 		\zihao{-5}
-		\begin{tabularx}{\linewidth}{l|c|c|c|c|c|c|c}
-			\hline
+		\begin{tabularx}{\linewidth}{lccccccc}
+			\Xhline{2\arrayrulewidth}
 			&       \makecell{PCC of\\ sulc}         &     \makecell{PCC of\\ curv}          &     \makecell{MAE of\\ sulc}  &         \makecell{MAE of\\ curv}     & Dice                     & CPU时间 & GPU时间 \\
 			\hline
 			S3Reg-single-sulc           &   0.7025*	        &   0.1820*	        &  3.0554*	       &  0.1761*	     &   0.7677*	        &    \textbf{3.5s} & \textbf{1.1s} \\
@@ -724,48 +703,49 @@ Dice(p_F^k, p_M^k \circ \phi) = 2 \frac{| p_F^k \cap (p_M^k \circ \phi)|}{|p_F^k
 		   FreeSurfer\cite{fischl2012freesurfer}     &    0.7991*         &	0.4091*          &   	2.4620*	   &   0.1461*    &   0.8010* &   30min       & -       \\
 			S3Reg-multi-sulc-curv	    &   \textit{0.8196}	&   0.4338           &  	\textit{2.2859} & \textit{0.1408}	 &   0.8074	        &   13.0s          &   9.1s        \\
 			S3Reg-multi-sulc-curv+parc	& 	\textbf{0.8338*}	& \textbf{0.4487*}	& \textbf{2.1542*}  & \textbf{0.1400}  & \textbf{0.8108*}  &   13.0s          &   9.1s        \\		
-			\hline
+			\Xhline{2\arrayrulewidth}
 		\end{tabularx}
 \end{table}
 
-\begin{figure}[h]
-	\centering
-	\includegraphics[width=1.0\linewidth]{figure/roi-wise_dice.eps}
-	\caption{使用不同方法得到的ROI-wise的配准Dice箱形图。}
+\subsection{成人大脑皮层表面的配准结果}
+
+表\ref{tab:NAMIC成人数据集的配准结果比较}列出了不同方法在NAMIC数据集上的配准结果。可以看到S3Reg-multi-sulc-curv+parc在所有指标上都取得了比其他方法更好的结果，这里注意S3Reg-multi-sulc-curv+parc模型在测试过程中并没有使用ROI分区图，只是在训练阶段使用了分区图来辅助训练而已，这说明ROI分区图和由粗到细的多分辨率配准方式确实有助于提高配准效果。唯一的一个例外，即curv的MAE，与S3Reg-multi-sulc-curv和MSM没有表现出显著的差异，这可能是因为S3Reg-multi-sulc-curv和MSM已经达到了curv的MAE性能的下限。在没有辅助的分区图信息的情况下，默认的S3Reg模型，即S3Reg-multi-sulc-curv，在sulc上实现了比MSM和Spherical Demons更好的配准效果，这得益于特别设计的与评价指标相匹配的MSD和PCC损失函数。另一方面，MSM在curv上获得了更好的配准效果，这是因为只有MSM是基于sulc配准结果在不同分辨率上多次进行curv配准的。在Dice方面，由于Spherical Demons最初是基于NAMIC数据集开发验证的，并在这个数据集上进行了配准和分区的实验，因此Spherical Demons中的默认参数有助于它在这个数据集上获得更好的Dice结果，最后的结果也验证了这个想法，即Spherical Demons的Dice值十分接近默认的S3Reg模型。
+
+图\ref{fig:registration_roi_wise_dice}
+\begin{figure}[t]
+    \centering
+    	\includegraphics[width=\columnwidth]{figure/roi-wise_dice.eps}
+	\caption{ROI-wise配准Dice箱形图。}
 	\label{fig:registration_roi_wise_dice}
 \end{figure}
-
+显示了不同配准方法的ROI-wise的Dice值，可以看到S3Reg-multi-sulc-curv+parc模型在34个区域中的25个区域都获得了最好的结果。在剩下的9个次优区域中，只有4个区域（cuneus cortex, paracentral lobule, pars orbitalis, temporal pole）显示出了显著差异。尽管如此，由于这些方法都提供了灵活的正则项或平滑项参数用来权衡配准精度与变形场的平滑度，因此结果还是可以依据参数微调的。然而，在运行时间上，本章提出的S3Reg配准算法仅需要
 \begin{figure}[h]
 	\centering
-	\includegraphics[width=0.7\linewidth]{figure/NAMIC_ATLAS.eps}
-	\caption{使用不同方法配准后的NAMIC数据集的平均皮层表面特征图和对应的方差图。像之前的工作\cite{lyu2019hierarchical}一样，这里我们也计算了方差图的平均方差及其标准差并标注在了每个方差图的下方。}
+	\includegraphics[width=0.62\linewidth]{figure/NAMIC_ATLAS.eps}
+	\caption{配准后得到的NAMIC数据集的平均皮层表面特征图和对应的方差图。像之前的工作\cite{lyu2019hierarchical}一样，这里也展示了方差图的平均方差及其标准差并标注在了每个方差图的下方。}
 	\label{fig:NAMIC_ATLAS}
 \end{figure}
+学习一个全局优化函数来配准所有的皮层表面，因此显著提高了计算效率。即使完全训练S3Reg模型需要大约12个小时，但与其他方法相比，在使用相同的CPU情况下，它在测试的时候只需要13秒。当进一步利用GPU的高算力优势时，S3Reg将配准时间降低到了10秒以内。需要注意的是，与其他深度学习应用相比，S3Reg在GPU上的速度相比CPU上的速度提升并不是很大。这是因为配准中最耗时的步骤，即特征和变形场的重心插值过程，需要在球面上进行三角形的穷举搜索，这个过程在GPU上的速度依然还是比较慢的。
 
+图\ref{fig:NAMIC_ATLAS}展示了NAMIC数据集中的所有测试对象在使用不同方法配准到FreeSurfer皮层模板后的组平均特征图和方差图。可以看到S3Reg在许多区域呈现出更加清晰的折叠模式，并且在所有测试数据中获得了比较低的方差，这表明这两个皮层结构特征被很好地配准对齐了。图\ref{fig:example_registration}
 \begin{figure}[h]
 	\centering
-	\includegraphics[width=0.9\linewidth]{figure/example_registration.eps}
-	\caption{使用不同方法将moving surface配准到atlas surface的典型案例。}
+	\includegraphics[width=0.77\linewidth]{figure/example_registration.eps}
+	\caption{将moving surface配准到atlas surface的例子。}
 	\label{fig:example_registration}
 \end{figure}
+提供了一个使用不同方法进行配准的代表性例子。可以看到对于sulc和curv的配准，所有方法都获得了非常相似的结果。而对于该皮层表面的分区图，S3Reg模型在训练过程中利用了分区图的辅助信息，于是获得了更好的与模板对齐的结果。
 
-\subsection{成人大脑皮层表面的配准结果}
-表\ref{tab:NAMIC成人数据集的配准结果比较}列出了不同方法在NAMIC数据集上的配准结果。可以看到S3Reg-multi-sulc-curv+parc在所有指标上都取得了比其他方法更好的结果，这里要注意S3Reg-multi-sulc-curv+parc模型在测试过程中并没有使用ROI分区图，只是在训练阶段使用了分区图来辅助训练而已，这说明ROI分区图和由粗到细的多分辨率配准方式确实有助于提高配准效果。唯一的一个例外，即curv的MAE，与S3Reg-multi-sulc-curv和MSM没有表现出显著的差异，这可能是因为S3Reg-multi-sulc-curv和MSM已经达到了curv的MAE性能的下限。在没有辅助的分区图信息的情况下，默认的S3Reg模型，即S3Reg-multi-sulc-curv，在sulc上实现了比MSM和Spherical Demons更好的配准效果，这得益于特别设计的与评价指标相匹配的MSD和PCC损失函数。另一方面，MSM在curv上获得了更好的配准效果，这是因为只有MSM是基于sulc配准结果在不同分辨率上多次进行curv配准的。在Dice方面，由于Spherical Demons最初是基于NAMIC数据集开发验证的，并在这个数据集上进行了配准和分区的实验，因此Spherical Demons中的默认参数有助于它在这个数据集上获得更好的Dice结果，最后的结果也验证了这个想法，即Spherical Demons的Dice值十分接近默认的S3Reg模型。
-
-图\ref{fig:registration_roi_wise_dice}显示了不同配准方法的ROI-wise的Dice值。可以看到S3Reg-multi-sulc-curv+parc模型在34个区域中的25个区域都获得了最好的结果。在剩下的9个次优区域中，只有4个区域（cuneus cortex, paracentral lobule, pars orbitalis, temporal pole）显示出了显著差异。尽管如此，由于这些方法都提供了灵活的正则项或平滑项参数用来权衡配准精度与变形场的平滑度，因此结果还是可以依据参数微调的。然而，在运行时间上，本章提出的S3Reg配准算法仅需要学习一个全局优化函数来配准所有的皮层表面，因此显著提高了计算效率。即使完全训练S3Reg模型需要大约12个小时，但与其他方法相比，在使用相同的CPU情况下，它在测试的时候只需要13秒。当进一步利用GPU的高算力优势时，S3Reg将配准时间降低到了10秒以内。需要注意的是，与其他深度学习应用相比，S3Reg在GPU上的速度相比CPU上的速度提升并不是很大。这是因为配准中最耗时的步骤，即特征和变形场的重心插值过程，需要在球面上进行三角形的穷举搜索，这个过程在GPU上的速度依然还是比较慢的。
-
-图\ref{fig:NAMIC_ATLAS}展示了NAMIC数据集中的所有测试对象在使用不同方法配准到FreeSurfer皮层模板后的组平均特征图和方差图。可以看到S3Reg在许多区域呈现出更加清晰的折叠模式，并且在所有测试数据中获得了比较低的方差，这表明这两个皮层结构特征被很好地配准对齐了。图\ref{fig:example_registration}提供了一个使用不同方法进行配准的代表性例子。我们可以看到，对于sulc和curv的配准，所有方法都获得了非常相似的结果。而对于该皮层表面的分区图，S3Reg模型在训练过程中利用了分区图的辅助信息，于是获得了更好的与模板对齐的结果。
 
 \subsection{婴儿大脑皮层表面配准的结果}
-表\ref{tab:婴儿皮层表面的配准结果}和图\ref{fig:infant_ATLAS}分别显示了使用不同方法基于皮层结构特征sulc和curv将皮层表面配准到模板皮层表面后，测试数据集里的婴儿皮层表面的定量的组归一化结果和定性的组平均和方差图。结果与NAMIC数据集非常一致，即S3Reg在sulc的配准上得到了更好的结果，而MSM在curv的配准上获得了更好的结果，Spherical Demons和S3Reg都获得了最高的Dice。从定性结果看，在许多ROI中，如rostral middle frontal和gyrus and temporal-occipital junction cortex，本章提出的S3Reg呈现出了更清晰的皮层折叠模式，这表明每个个体之间都实现了更好的与模板表面的配准。
-
-\begin{table}[t]
-	\caption{基于结构特征的婴儿大脑皮层表面的配准结果。*表示与S3Reg相比有统计学上的显著差异(p$<$0.05)。}
+表\ref{tab:婴儿皮层表面的配准结果}和图\ref{fig:infant_ATLAS}分别显示了使用不同方法基于皮层结构特征sulc和curv将皮层表面配准到模板皮层表面后，测试数据集里的婴儿皮层表面的定量的组归一化结果和定性的组平均和方差图。
+\begin{table}[h]
+	\caption{基于结构特征的婴儿大脑皮层表面的配准结果。*表示与S3Reg相比有统计学上的显著差异($p<$0.05)。}
 	\label{tab:婴儿皮层表面的配准结果}
 	\centering
 	\zihao{5}
-	\begin{tabularx}{0.9\columnwidth}{X<{\centering}|X<{\centering}|X<{\centering}|X<{\centering}}
-		\hline
+	\begin{tabularx}{0.9\columnwidth}{X<{\centering} X<{\centering} X<{\centering} X<{\centering}}
+		\Xhline{2\arrayrulewidth}
 			& Spherical Demons &	MSM	& S3Reg  \\
 		\hline
 			PCC of sulc &	0.6982±0.0521* &	0.7103±0.0431*  &	\textbf{0.7359±0.0526}  \\
@@ -773,52 +753,53 @@ Dice(p_F^k, p_M^k \circ \phi) = 2 \frac{| p_F^k \cap (p_M^k \circ \phi)|}{|p_F^k
 			MAE of sulc &	2.7669±0.3528* &	2.6660±0.3168* &	\textbf{2.3730±0.3362}  \\
 			MAE of curv &	0.1933±0.0205* &	\textbf{0.1790±0.0189*} &	0.1853±0.0197\\
 			Dice&	0.7858±0.0583 &	0.7659±0.0552* &	\textbf{0.7903±0.0566} \\		
-		\hline
+		\Xhline{2\arrayrulewidth}
 	\end{tabularx}
 \end{table}
-
 \begin{figure}[h]
 	\centering
-	\includegraphics[width=0.7\linewidth]{figure/infant_ATLAS.eps}
+	\includegraphics[width=0.68\linewidth]{figure/infant_ATLAS.eps}
 	\caption{使用不同方法配准后的婴儿大脑皮层结构特征的组平均图和方差图。}
 	\label{fig:infant_ATLAS}
 \end{figure}
+结果与NAMIC数据集非常一致，即S3Reg在sulc的配准上得到了更好的结果，而MSM在curv的配准上获得了更好的结果，Spherical Demons和S3Reg都获得了最高的Dice。从定性结果看，在许多ROI中，如rostral middle frontal和gyrus and temporal-occipital junction cortex，本章提出的S3Reg呈现出了更清晰的皮层折叠模式，这表明每个个体之间都实现了更好的与模板表面的配准。
 
+此外，为了验证本章提出的方法的泛化能力和可扩展性，基于第6级正二十面体分形球面的sulc配准结果，我们分别配准了myelin和FGD。注意到使用不同方法得到的基于结构特征的配准结果作为初始配准球面可能会影响到最后的功能特征的配准结果，因此为了在不同的方法之间有一个公平的比较，实验选择了Spherical Demons的sulc配准结果作为所有方法的初始配准结果，因为它直接提供了一个第7级的高分辨率的皮层表面与配准好的皮层特征。这里要注意无论初始化方法是哪一个，最后的结果应该都是一样的。表\ref{tab:婴儿皮层表面功能特征配准结果}
 \begin{table}[h]
 		\caption{基于婴儿皮层表面功能特征的配准结果比较。表中所有的结果均有显著性差异。}
 		\label{tab:婴儿皮层表面功能特征配准结果}
 		\centering
 		\zihao{5}
-		\begin{tabularx}{0.9\columnwidth}{X<{\centering}|X<{\centering}|X<{\centering}|X<{\centering}}
-			\hline
+		\begin{tabularx}{0.9\columnwidth}{X<{\centering} X<{\centering} X<{\centering} X<{\centering}}
+			\Xhline{2\arrayrulewidth}
 			& Spherical Demons &	MSM	& S3Reg  \\
 		    \hline
 			PCC of myelin              &	0.6929±0.1127	 &  0.6362±0.1225 &	\textbf{0.7196±0.1082} \\
 			MAE of myelin              &	0.1076±0.0312    &	0.1127±0.0327 &	\textbf{0.0970±0.0301} \\
 			PCC of FGD    &	0.4340±0.0867    &	0.4115±0.1163 &	\textbf{0.5154±0.0740} \\
 			MAE of FGD	   &    0.0874±0.0132    &	0.0914±0.0180 &	\textbf{0.0741±0.0121} \\	
-			\hline
+			\Xhline{2\arrayrulewidth}
 		\end{tabularx}
 \end{table}
-
 \begin{figure}[h]
 	\centering
-	\includegraphics[width=0.8\linewidth]{figure/myelinandgrad.eps}
+	\includegraphics[width=0.73\linewidth]{figure/myelinandgrad.eps}
 	\caption{第一行和第三行显示了原始图谱的myelin和FGD图，以及使用不同方法配准后得到的大脑皮层表面平均后生成的新图谱。第二行和第四行为其对应的方差图。}
 	\label{fig:myelinandgrad}
 \end{figure}
+总结了功能特征驱动的婴儿大脑皮层表面配准结果。在与配准curv时参数相同的情况下，Spherical Demons和MSM对新功能特征的泛化程度明显较低，而S3Reg仍然取得了
+显示了测试集的myelin和FGD在使用不同方法配准后的平均特征图和方差图。可以看出，S3Reg呈现出比原始模板、Spherical Demons和MSM都更加清晰锐利的平均图，说明在这组数据的配准中，个体到模板的配准是很精准的。由于这个平均图可以看作是一个新的群体模板，因此本章提出的S3Reg所呈现的更清晰的新模板对后续的分析也会大有裨益。
 
-此外，为了验证本章提出的方法的泛化能力和可扩展性，基于第6级正二十面体分形球面的sulc配准结果，我们分别配准了myelin和FGD。注意到使用不同方法得到的基于结构特征的配准结果作为初始配准球面可能会影响到最后的功能特征的配准结果，因此为了在不同的方法之间有一个公平的比较，我们选择Spherical Demons的sulc配准结果作为所有方法的初始配准结果，因为它直接提供了一个第7级的高分辨率的皮层表面与配准好的皮层特征。这里要注意无论初始化方法是哪一个，最后的结果应该都是一样的。表\ref{tab:婴儿皮层表面功能特征配准结果}总结了功能特征驱动的婴儿大脑皮层表面配准结果。在与配准curv时参数相同的情况下，Spherical Demons和MSM对新功能特征的泛化程度明显较低，而S3Reg仍然取得了很不错的结果。图\ref{fig:myelinandgrad}显示了测试集的myelin和FGD在使用不同方法配准后的平均特征图和方差图。可以看出，S3Reg呈现出比原始模板、Spherical Demons和MSM都更加清晰锐利的平均图，说明在这组数据的配准中，个体到模板的配准是很精准的。由于这个平均图可以看作是一个新的群体模板，因此本章提出的S3Reg所呈现的更清晰的新模板对后续的分析也会大有裨益。
-
-\begin{figure}[t]
-	\centering
-	\includegraphics[width=0.8\linewidth]{figure/ADVSHC.eps}
-	\caption{基于不同配准方法得到的阿尔茨海默病（AD）和健康对照组在大脑皮层左半球的皮层厚度差异图。结果已经使用了$q~rate$为0.05的多重比较校正。皮层颜色显示了p值的对数值（$-log_{10}$）。较暖的颜色（正值）代表AD中具有统计学意义的显著变薄区域；较冷的颜色（负值）代表AD中具有统计学意义的皮层增厚的区域。}
-	\label{fig:ADVSHC}
-\end{figure}
 
 \subsection{异常大脑皮层表面的配准结果}
-由于上述结果都是基于健康的大脑皮层，因此这一小节进行了一个额外的实验，配准阿尔茨海默病（ADNI）数据库\cite{jack2008alzheimer}中的皮层表面，用来在前瞻性研究中更好地验证本章提出的方法在异常大脑上的表现。这个实验直接应用了之前使用的成人数据训练好的模型，将ADNI数据集中的皮层表面配准到FreeSurfer的平均模板上。注意到我们并没有使用任何ADNI的数据来训练或微调模型。实验的数据由ADNI-1数据集的428名参与者组成，分为年龄相匹配的2组，分别是健康对照组（Health Control, HC）（n=229，平均年龄：76.0$\pm$5.1岁，48\%为女性）和阿尔茨海默病组（Alzheimer's Disease, AD）（n=199，平均年龄：75.6$\pm$7.3岁，48.5\%女性）。我们选择使用了每个受试者的第一次扫描的大脑MRI数据，这些数据都是由1.5T磁共振扫描仪采集得到的并且具有足够高的图像质量。所有的皮层表面都由FreeSurfer重建好\cite{fischl2012freesurfer}，并进一步映射到球面上。考虑到FreeSurfer在神经影像领域的流行度，本实验将我们的方法与FreeSurfer的配准工具(mris\_register)进行了比较。具体来讲，从相同的球面映射的大脑皮层数据开始，我们分别使用FreeSurfer和S3Reg将它们配准到FreeSurfer平均（fsaverage）皮层表面\cite{fischl2012freesurfer}。然后使用FreeSurfer中的一般线性模型（General Linear Model, GLM）对两组配准好的大脑皮层的皮层厚度属性进行逐个顶点的比较，就可以分别为FreeSurfer和S3Reg生成显示AD和HC之间统计显著性差异的皮层表面图，如图\ref{fig:ADVSHC}所示。两种配准方法的结果均显示了在AD组内，中侧颞叶皮层（lateral temporal cortex）、下顶叶皮层（inferior parietal cortex）、背上额回（dorsal superior frontal gyrus）、外侧和内侧枕叶皮层（lateral and medial occipital cortex）的皮层明显变薄。然而，如箭头所指，我们的S3Reg比FreeSurfer揭示了更多更大的显著性变薄区域，特别是在颞上沟（superior temporal sulcus）、侧枕部皮层（lateral occipital cortex）、背上额叶回（dorsal superior frontal gyrus）、纺锤形回（fusiform gyrus）、副海马回（parahippocampal gyrus）、峡部（isthmus）和后扣带皮层（posterior cingulate cortex）。这些结果表明，S3Reg更准确地配准了不同个体的皮层表面，因此在疾病检测方面更加有效，计算效率也更高。同时，本章开发的S3Reg算法只需要10s即可完成一次配准，而FreeSurfer则需要30min。
+由于上述结果都是基于健康的大脑皮层，因此这一小节进行了一个额外的实验，配准阿尔茨海默病（ADNI）数据库\cite{jack2008alzheimer}中的皮层表面，用来在前瞻性研究中更好地验证本章提出的方法在异常大脑上的表现。这个实验直接应用了之前使用的成人数据训练好的模型，将ADNI数据集中的皮层表面配准到FreeSurfer的平均模板上。注意到我们并没有使用任何ADNI的数据来训练或微调模型。实验的数据由ADNI-1数据集的428名参与者组成，分为年龄相匹配的2组，分别是健康对照组（Health Control, HC）（n=229，平均年龄：76.0$\pm$5.1岁，48\%为女性）和阿尔茨海默病组（Alzheimer's Disease, AD）（n=199，平均年龄：75.6$\pm$7.3岁，48.5\%女性）。我们选择使用了每个受试者的第一次扫描的大脑MRI数据，这些数据都是由1.5T磁共振扫描仪采集得到的并且具有足够高的图像质量。所有的皮层表面都由FreeSurfer重建好\cite{fischl2012freesurfer}，并进一步映射到球面上。考虑到FreeSurfer在神经影像领域的流行度，本实验将我们的方法与FreeSurfer的配准工具(mris\_register)进行了比较。具体来讲，从相同的球面映射的大脑皮层数据开始，我们分别使用FreeSurfer和S3Reg将它们配准到FreeSurfer平均（fsaverage）皮层表面\cite{fischl2012freesurfer}。然后使用FreeSurfer中的一般线性模型（General Linear Model, GLM）对两组配准好的大脑皮层的皮层厚度属性进行逐个顶点的比较，就可以分别为FreeSurfer和S3Reg生成显示AD和HC之间统计显著性差异的皮层表面图，如图\ref{fig:ADVSHC}
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=0.8\linewidth]{figure/ADVSHC.eps}
+	\caption{基于FreeSurfer和S3Reg得到的阿尔茨海默病（AD）和健康对照组在大脑皮层左半球的皮层厚度差异图。结果已经使用了$q~rate$为0.05的多重比较校正。皮层颜色显示了$p$值的对数值（$-log_{10}$）。较暖的颜色（正值）代表AD中具有统计学意义的显著变薄区域；较冷的颜色（负值）代表AD中具有统计学意义的皮层增厚的区域。}
+	\label{fig:ADVSHC}
+\end{figure}
+所示。两种配准方法的结果均显示了在AD组内，中侧颞叶皮层（lateral temporal cortex）、下顶叶皮层（inferior parietal cortex）、背上额回（dorsal superior frontal gyrus）、外侧和内侧枕叶皮层（lateral and medial occipital cortex）的皮层明显变薄。然而，如箭头所指，我们的S3Reg比FreeSurfer揭示了更多更大的显著性变薄区域，特别是在颞上沟（superior temporal sulcus）、侧枕部皮层（lateral occipital cortex）、背上额叶回（dorsal superior frontal gyrus）、纺锤形回（fusiform gyrus）、副海马回（parahippocampal gyrus）、峡部（isthmus）和后扣带皮层（posterior cingulate cortex）。这些结果表明，S3Reg更准确地配准了不同个体的皮层表面，因此在疾病检测方面更加有效，计算效率也更高。同时，本章开发的S3Reg算法只需要10s即可完成一次配准，而FreeSurfer则需要30min。
 
 \section{讨论}
 本章提出了用于球形皮层表面配准的新型S3Reg框架。受益于基于CNN的深度学习技术和端到端的无监督学习架构，S3Reg配准算法取得了的令人欣喜的表现，为多模态皮层特征配准提供了超快、拓扑保证、准确和灵活的结果。然而作为一个多功能的通用算法，仍有几个潜在的问题值得讨论。
@@ -833,15 +814,6 @@ Dice(p_F^k, p_M^k \circ \phi) = 2 \frac{| p_F^k \cap (p_M^k \circ \phi)|}{|p_F^k
 
 \section{本章小结}
 本章提出了一个基于深度学习方法的多功能大脑皮层表面配准框架S3Reg，用于在球面空间上进行快速灵活的皮层表面配准。本章的实验结果表明S3Reg不需要金标准的球面变形场，只利用端到端无监督学习的特点，再结合3个互补的正交球面U-Net，便可以有效地解决球面配准上的极点变形问题。为了保证球面变形场的拓扑属性，本章开发了一个新的球面“缩放和平方”可微分层用于静态速度场的积分以得到diffeomorphism的球面变形场。如结果中所示，本章提出的S3Reg可以灵活地结合来自结构和功能图像的多模态特征进行皮层表面配准。更重要的是，与目前最好的非深度学习方法相比，S3Reg运行速度更快，同时还能获得更高的配准精度，使其更适合大规模神经影像数据分析。此外，本章开发的方法不受相似度指标和平滑度约束的选择影响，从而为球面配准提供了更多的选择和潜在的研究方向，也为其他亏格为0的器官和一些以球面数据为对象的计算机视觉任务提供了新的研究方向。
-
-\ifthenelse{\equal{\BlindReview}{true}}%
-        {
-        }
-        {
-        本章的部分工作已在2020年国际医学影像学机器学习会议（11th International Workshop on Machine Learning in Medical Imaging, MLMI 2020）上发表，后续整理扩充的期刊文章在2021年3月被IEEE Transactions on Medical Imaging录用。
-        }
-
-
 
 
 
@@ -860,14 +832,14 @@ Dice(p_F^k, p_M^k \circ \phi) = 2 \frac{| p_F^k \cap (p_M^k \circ \phi)|}{|p_F^k
 
 因此，本章利用大脑皮层的球形拓扑结构，基于\ref{sec:基于球面U-Net的皮层分区与属性预测}开发的球面卷积神经网络的基本操作，探讨研究了同时进行皮层表面配准和分区的想法。为了提取更有效的皮层特征，本章设计了一个共享编码器用来学习两个任务共享的皮层属性高级特征。然后，训练了两个针对特定任务的解码器分别进行配准和分区。另外，本章还进一步地利用两个任务之间的显示联系，由此设计了一个新的ROI分区图相似性损失函数。这个损失函数会约束配准后的moved surface的预测分区图与fixed surface（即atlas surface）的手动标记的分区图相匹配，从而为配准任务提供额外的ROI边界一致性的监督信息。相反，这个损失函数也可以被认为是一种有效的数据增强方法，为未被人工标记过的皮层表面生成伪ROI分区图，这样就可以给分区网络提供更多的训练数据，从而帮助分区网络进行半监督学习\cite{xu2019deepatlas}。因此，与单独训练的网络相比，这两个任务可以相互帮助、相互指导、相互提升对方的性能，尤其是在只有少量的人工标注数据的情况下。因此，这个工作对于只有少量人工标注的大脑皮层数据集的处理与分析有着十分重要的意义。
 
-\begin{figure}[t]
+\section{大脑皮层同时分区与配准的方法}\label{sec:大脑皮层同时分区与配准的网络结构}
+本章的主要目标是训练一个同时配准和分区的网络（Joint Registration and Parcellation Network, JRP-Net），该网络会根据给定的皮层表面属性图生成其ROI分区图并同时得到它到atlas的变形场，其次的目标是希望使用更少的人工标注数据得到更准确的结果。为了达到这个目标，本章提出的JRP-Net方法框架如图\ref{fig:jrp_network_archi}
+\begin{figure}[h]
 	\centering
 	\includegraphics[width=\linewidth]{figure/jrp_network_archi.eps}
 	\caption{用于大脑皮层表面同时配准和分区的JRP-Net网络框架。输入的皮层表面由两个结构特征表示，即sulc（上）和curv（下）。Conv Block包含重复的1-ring Conv+BN+ReLU。Trans. Conv代表球面转置卷积，用于对球面进行上采样操作。输入和输出大小标记在了每一个球面操作的前后。关于数学符号的解释，请参见\ref{sec:大脑皮层同时分区与配准的网络结构}中的介绍。}\label{fig:jrp_network_archi}
 \end{figure}
-
-\section{大脑皮层同时分区与配准的方法}\label{sec:大脑皮层同时分区与配准的网络结构}
-本章的主要目标是训练一个同时配准和分区的网络（Joint Registration and Parcellation Network, JRP-Net），该网络会根据给定的皮层表面属性图生成其ROI分区图并同时得到它到atlas的变形场，其次的目标是希望使用更少的人工标注数据得到更准确的结果。为了达到这个目标，本章提出的JRP-Net方法框架如图\ref{fig:jrp_network_archi}所示。这个JRP-Net由三个模块组成：一个用于提取共享高级特征的共享编码器（Shared Encoder, SE），一个用于皮层表面配准的配准解码器（Registration Decoder, RD）和一个用于皮层分区的分区解码器（Parcellation Decoder, PD）。依然假设$M$，$F$分别表示定义在球面$S^2$上的moving surface和fixed surface，并且是用\ref{sec:正二十面体离散化的球面}中介绍的正二十面体分形体离散化球面表示的数据结构\cite{fischl2012freesurfer}。那么，SE模块用来编码输入球面的皮层属性图并且提取高级分层次的皮层特征$Z$：$Z_F=f_{SE}(F), Z_M=f_{SE}(M)$。RD模块输入从$F$和$M$中提取的特征，输出球面速度场$\overrightarrow{u}$：$\overrightarrow{u}=f_{RD}(Z_F,Z_M)$，并使用6个“缩放和平方”层进一步推导得到diffeomorphism的球面变形场$\phi=exp(\overrightarrow{u})$，这个过程在\ref{sec:微分同胚的变形场}和\ref{sec:球面变形层}中详细介绍过。PD模块将提取的特征$Z$作为输入，输出分区图$P=f_{PD}(Z)$。为了成功训练提出的JRP-Net，我们设计了特征相似度损失（${\cal L}_{fs}$）和球面变形场平滑度损失（${\cal L}_s$）函数来训练配准网络（SE+RD），有监督的ROI分区损失（${\cal L}_{sp}$）来训练分区网络（SE+PD），以及ROI分区图相似性损失（${\cal L}_{ps}$）来训练整个网络（SE+RD+PD）。这些损失函数以及对应的训练策略将在以下几个小节中详细介绍。
+所示。这个JRP-Net由三个模块组成：一个用于提取共享高级特征的共享编码器（Shared Encoder, SE），一个用于皮层表面配准的配准解码器（Registration Decoder, RD）和一个用于皮层分区的分区解码器（Parcellation Decoder, PD）。依然假设$M$，$F$分别表示定义在球面$S^2$上的moving surface和fixed surface，并且是用\ref{sec:正二十面体离散化的球面}中介绍的正二十面体分形体离散化球面表示的数据结构\cite{fischl2012freesurfer}。那么，SE模块用来编码输入球面的皮层属性图并且提取高级分层次的皮层特征$Z$：$Z_F=f_{SE}(F), Z_M=f_{SE}(M)$。RD模块输入从$F$和$M$中提取的特征，输出球面速度场$\overrightarrow{u}$：$\overrightarrow{u}=f_{RD}(Z_F,Z_M)$，并使用6个“缩放和平方”层进一步推导得到diffeomorphism的球面变形场$\phi=exp(\overrightarrow{u})$，这个过程在\ref{sec:微分同胚的变形场}和\ref{sec:球面变形层}中详细介绍过。PD模块将提取的特征$Z$作为输入，输出分区图$P=f_{PD}(Z)$。为了成功训练提出的JRP-Net，我们设计了特征相似度损失（${\cal L}_{fs}$）和球面变形场平滑度损失（${\cal L}_s$）函数来训练配准网络（SE+RD），有监督的ROI分区损失（${\cal L}_{sp}$）来训练分区网络（SE+PD），以及ROI分区图相似性损失（${\cal L}_{ps}$）来训练整个网络（SE+RD+PD）。这些损失函数以及对应的训练策略将在以下几个小节中详细介绍。
 
 \subsection{网络结构}\label{sec:大脑皮层同时分区与配准的网络结构2.1}
 本章提出的JRP-Net网络结构是基于\ref{sec:球面U-Net}中开发的球面U-Net构建的。球面U-Net利用皮层表面的球形拓扑结构，在均匀一致的重采样球面上使用1-ring卷积核将卷积、池化等操作扩展到了球面空间，然后使用相应的球面操作构建球面卷积神经网络。这些基本操作在\ref{sec:基于球面U-Net的皮层分区与属性预测}的皮层分区和皮层属性发育预测任务以及\ref{sec:基于三个正交球面U-Net的快速球面配准算法}的配准等任务上都取得了不错的结果。因此，本章也将一贯采用之前开发的1-ring卷积核及相应的球面CNN的基本操作来搭建本章提出的同时分区与配准的JRP-Net。
@@ -876,13 +848,14 @@ Dice(p_F^k, p_M^k \circ \phi) = 2 \frac{| p_F^k \cap (p_M^k \circ \phi)|}{|p_F^k
 本章提出的SE模块与球面U-Net的编码器部分有着类似的结构，它由4个重复的1-ring卷积层+批量归一化层（BN）+ReLU层组成，分别在4个不同的分辨率级别上，每个分辨率级别间有1个球面平均池化层。这个基本的编码器结构已经在许多计算机视觉和医学图像分析任务中展现了优秀的特征表达能力\cite{ronneberger2015u}，因此这里我们用它来学习并提取不同空间尺度的配准和分区任务的共享特征。
 
 \subsubsection{分区解码器（PD）}
-PD模块基于提取的特征图$Z$预测ROI分区图，JRP-Net使用了与\ref{sec:球面U-Net}节中的球面U-Net一样的解码器结构，并对特征通道和分辨率进行了相应的修改，即只保留4个分辨率级别的解码层，并将通道数相应地减少了一些，获得了更快的速度的同时保证了特征学习所需要的参数数量，具体结构如\ref{fig:jrp_network_archi}所示。
+PD模块基于提取的特征图$Z$预测ROI分区图，JRP-Net使用了与\ref{sec:球面U-Net}节中的球面U-Net一样的解码器结构，并对特征通道和分辨率进行了相应的修改，即只保留4个分辨率级别的解码层，并将通道数相应地减少了一些，获得了更快的速度的同时保证了特征学习所需要的参数数量，具体结构如\ref{fig:jrp_network_archi}所示。可以看到它与第2章提出的球面U-Net差别仅仅在于通道数和不同分辨率级别的层数上。
 
 \subsubsection{配准解码器（RD）}
 RD模块利用了\ref{sec:基于三个正交球面U-Net的快速球面配准算法}中介绍的端到端的无监督学习框架。它首先结合了SE提取的多个尺度的高级特征$Z_F$和$Z_M$，并基于这些特征预测$F$到$M$的变形场。与之前的一些配准方法\cite{cheng2020cortical}直接将$F$和$M$的串联特征作为神经网络的输入相比，本章设计的新型配准网络（SE+RD）有两个主要优势：（1）使用SE单独提取特征，RD单独计算变形场，这使得编码器和解码器的训练目标更加清晰明确，从而更容易达成；（2）RD中的深度多尺度特征结合可以更方便地学习$F$和$M$的高级ROI边界特征之间的差异性，这对于有效地计算变形场并将$F$和$M$的ROI边缘对齐具有重要的作用\cite{liu2019probabilistic}。
 
 
 \subsection{损失函数}\label{sec:同时分区与配准的损失函数}
+这一小节介绍几个用来训练JRP-Net特别设计的损失函数。
 \subsubsection{皮层属性相似性损失（${\cal L}_{fs}$）}
 皮层属性相似性损失${\cal L}_{fs}$是用来训练配准网络的。它可以强制网络学习配准所需的变形场，使得moving surface在学习到的变形场的作用下得到的moved surface与图谱皮层表面之间的特征相似性达到最大：
 \begin{equation}\label{eq:4.1}
@@ -937,21 +910,22 @@ RD模块利用了\ref{sec:基于三个正交球面U-Net的快速球面配准算�
 如表\ref{tab:同时配准和分区的结果}所示，单独使用本章设计的BL-Reg进行皮层表面配准可以达到与现有配准方法相当的精度，但比以往无监督方法\cite{zhao2020unsupervised}快50+倍，比Spherical Demons和FreeSurfer\cite{yeo2009spherical,fischl1999high}快500+倍。需要注意的是，传统方法Spherical Demons\cite{yeo2009spherical}和FreeSurfer\cite{fischl1999high}没有GPU代码的实现，表\ref{tab:同时配准和分区的结果}中给出的是它们在CPU上的运行时间，其他方法都是在GPU上的运行时间。因此，我们也在同样的CPU上运行了BL-Reg，但它也只需要0.4s，仍然比\cite{yeo2009spherical,fischl1999high}快很多。与直接将$F$和$M$的串联作为输入使用由粗到细的方式进行配准的无监督学习网络\cite{zhao2020unsupervised}相比，本章提出的SE+RD配准网络在深层特征空间中结合了高级特征，从而避免了原始球面空间中耗时的重新插值变形场和球面特征的计算，同时还获得了更好的结果。这说明SE成功地学习到了皮层表面的高级特征并且RD也有效地基于高级边界特征的差异计算出了变形场。另外为了验证球面拓扑属性有没有得到良好的保护，我们还计算了配准后皮层表面的折叠三角形\cite{moller1997fast}数量，发现所有方法都没有导致任何折叠三角形，这表明所有方法都很好地保证了球面配准的拓扑属性。
 
 \begin{table}[t]
-	\caption{使用不同模型得到的皮层表面分区和配准在测试集上的平均（标准差）结果。注意所有的模型都使用了训练集上所有的人工标记的ROI分区图信息进行了训练。}\label{tab:同时配准和分区的结果}
+	\caption{皮层表面分区和配准在测试集上的平均（标准差）结果。这个实验中，所有的模型都使用了训练集上所有的人工标记的ROI分区图信息进行了训练。}\label{tab:同时配准和分区的结果}
 	\centering
 	\zihao{-5}
-		\begin{tabular}{l|c|ccc|c}
-			\hline
-			\multicolumn{1}{l|}{\multirow{2}{*}{模型}} & 分区 & \multicolumn{3}{c|}{配准}              & \multirow{2}{*}{运行时间} \\ \cline{2-5}
-			\multicolumn{1}{c|}{}                        & Dice (\%)        & Dice (\%)        & PCC\_sulc        & PCC\_curv       &                           \\ \hline
-			Parcellation only (BL-Parc)                & 88.48(3.68)   & -           & -               & -              & 0.01s                     \\ \hline
-			Registration only (FreeSurfer\cite{fischl1999high})        & -            & 76.69(5.52) & 0.778(0.054)  & 0.279(0.081) & $\sim$30min               \\ \hline
-			Registration only (Spherical Demons\cite{yeo2009spherical})  & -            & 76.58(5.83) & 0.782(0.067)  & 0.272(0.123) & $\sim$1.5min              \\ \hline
-			Registration only\cite{zhao2020unsupervised})        & -            & 77.03(5.66) & 0.785(0.052)  & 0.295(0.081) & $\sim$10s                       \\ \hline
-			Registration only (BL-Reg) (Ours)                & -            & 77.34(3.82) & 0.794(0.037) & 0.296(0.079) & 0.16s                     \\ \hline
-			JRP-w/oSE-w/${\mathcal{L}}_{ps}$ (Ours)      & 88.48(3.68)  & 88.78(3.12) & 0.820(0.033)   & 0.331(0.079) &	0.01s+0.16s                     \\ \hline
-			JRP-w/SE-w/o${\mathcal{L}}_{ps}$ (Ours)      &  89.34(2.47) & 78.18(4.39)  & 0.799(0.046)   &	0.309(0.095) &	0.16s                        \\ \hline
-			JRP-w/SE-w/${\mathcal{L}}_{ps}$ (Ours)      &   \textbf{89.98(2.53)} &  \textbf{90.23(2.56)}  & \textbf{0.828(0.031)}   &	\textbf{0.335(0.067)} &	0.16s      \\ \hline
+		\begin{tabular}{lccccc}
+			\Xhline{2\arrayrulewidth}
+			\multicolumn{1}{l}{\multirow{2}{*}{模型}} & 分区 & \multicolumn{3}{c}{配准}              & \multirow{2}{*}{运行时间} \\ \cline{2-5}
+			\multicolumn{1}{c}{}                        & Dice (\%)        & Dice (\%)        & PCC\_sulc        & PCC\_curv       &                           \\ \hline
+			Parcellation only (BL-Parc)                & 88.48(3.68)   & -           & -               & -              & 0.01s                     \\ 
+			Registration only (FreeSurfer\cite{fischl1999high})        & -            & 76.69(5.52) & 0.778(0.054)  & 0.279(0.081) & $\sim$30min               \\ 
+			Registration only (Spherical Demons\cite{yeo2009spherical})  & -            & 76.58(5.83) & 0.782(0.067)  & 0.272(0.123) & $\sim$1.5min              \\ 
+			Registration only\cite{zhao2020unsupervised})        & -            & 77.03(5.66) & 0.785(0.052)  & 0.295(0.081) & $\sim$10s                       \\ 
+			Registration only (BL-Reg) (Ours)                & -            & 77.34(3.82) & 0.794(0.037) & 0.296(0.079) & 0.16s                     \\ 
+			JRP-w/oSE-w/${\mathcal{L}}_{ps}$ (Ours)      & 88.48(3.68)  & 88.78(3.12) & 0.820(0.033)   & 0.331(0.079) &	0.01s+0.16s                     \\ 
+			JRP-w/SE-w/o${\mathcal{L}}_{ps}$ (Ours)      &  89.34(2.47) & 78.18(4.39)  & 0.799(0.046)   &	0.309(0.095) &	0.16s                        \\ 
+			JRP-w/SE-w/${\mathcal{L}}_{ps}$ (Ours)      &   \textbf{89.98(2.53)} &  \textbf{90.23(2.56)}  & \textbf{0.828(0.031)}   &	\textbf{0.335(0.067)} &	0.16s      \\ 
+			\Xhline{2\arrayrulewidth}
 		\end{tabular}
 \end{table}
 
@@ -963,20 +937,20 @@ RD模块利用了\ref{sec:基于三个正交球面U-Net的快速球面配准算�
 表\ref{tab:同时配准和分区的结果}显示，与单独训练的网络相比，加入了ROI分区图相似性损失函数${\cal L}_{ps}$后，模型的性能都得到了大幅度的提升，对于配准和分区任务来说分别有$>$10\%和1.5\%的Dice提升 。因为在这个对比实验中，所有的训练数据都有人工标注的ROI标签，所以对于JRP-w/oSE-w/${\cal L}_{ps}$模型，根据公式\ref{eq:4.4}，${\cal L}_{ps}$是基于两个手动标注的ROI分区图的，因此它并不能为独立的分区网络训练提供任何信息，但却为配准网络提供了最大的额外监督信息，使得配准网络达到了非常高的精度。此外，再加上SE模块，JRP-w/SE-w/${\cal L}_{ps}$模型中的${\cal L}_{ps}$便可以将梯度从RD反向传播到SE，从而通过在SE中学习使用更多有效的高级皮层特征来提高分区任务的性能。
 
 
-\begin{figure}[t]
+\subsection{配准和分区是如何互相帮助的}
+上述实验都是基于整个训练集的人工标注的ROI数据来进行的，但是实际情况中拥有标注的医学图像数据集并不是很常见，大多数数据依然还是没有人工标注的。因此这个实验模拟了常见的实际使用情况，即只有少量的人工标注数据可用，用来解释在实际使用情况中为什么本章提出的方法可以让配准和分区任务互相帮助并获得比单独训练的模型高出很多的性能。本实验在训练集上随机选择并使用$N$个人工标注的皮层球面ROI数据来训练BL-Parc，BL-Reg和JRP-Net（JRP-w/SE-w/${\cal L}_{ps}$）。为了获得更可信的结果，我们对每个模型重复了10次实验（每次都是随机选取的$N$个球面）。图\ref{fig:jrp_dice}
+\begin{figure}[h]
 	\centering
 	\includegraphics[width=0.7\linewidth]{figure/jrp_Figure_dice.eps}
-	\caption{使用不同数量的人工标记的训练数据得到的不同模型的Dice值。图中给出的是10次随机选取不同数据的平均结果和方差。} \label{fig:jrp_dice}
+	\caption{随机选取一定数量的人工标记的数据训练JRP-Net得到的Dice值。图中画出的是10次随机选取的平均结果和方差。} \label{fig:jrp_dice}
 \end{figure}
-
-\begin{figure}[t]
+显示了在测试集上10次实验的平均结果。可以看到，在只有atlas拥有人工标注的ROI标签的极端情况下，即11个UNC 4D atlas\cite{li2015construction}，本章提出的JRP-Net方法仍然取得了不错的结果，相比独立训练的模型有很大的改进。这证明了配准任务确实为未标注的皮层表面提供反向配准的atlas的人工标记ROI图，用来扩充数据集，从而为分区任务提供了额外的半监督信息，在有些工作\cite{xu2019deepatlas}中这也叫做一种数据增强手段。反过来，可以看出即使使用预测的分区图来计算ROI分区的一致性，配准性能也能在分区任务的帮助下有所提升（当$N>3$）。同时我们还注意到，图\ref{fig:jrp_dice}中的JRP-Net的配准Dice和分区Dice的线条是高度重合的。对10次实验进行了显著性水平为0.05的配对t检验后，结果证实了配准和分区任务的Dice结果之间并没有显著性差异。这可能是因为两个任务相互引导训练，成功利用SE学习到了最优的皮层特征表达，然后两个任务特定的解码器都成功地找到了两个任务的最优解。图\ref{fig:jrp_registraionExamples}
+\begin{figure}[h]
 	\centering
 	\includegraphics[width=\linewidth]{figure/jrp_registraionExamples.eps}
-	\caption{每一行的球形大脑皮层表面数据分别为（从左到右）：moving surface的sulc特征图（第一行）和人工标记的ROI分区图(第二行)，不同方法对应的moved surface，以及fixed surface的皮层属性图。图中所有的方法都公平地将特征（sulc和curv）作为输入，并输出球面变形场用于配准moving surface。注意图中的人工标记的ROI图只是为了验证配准性能，并没有用来预测变形场。} \label{fig:jrp_registraionExamples}
+	\caption{几个典型的球面大脑皮层表面配准的例子。图中所有的方法都公平地将特征（sulc和curv）作为输入，并输出球面变形场用于配准moving surface，且图中的人工标记的ROI图只是为了验证配准性能，并没有用来预测变形场。} \label{fig:jrp_registraionExamples}
 \end{figure}
-
-\subsection{配准和分区是如何互相帮助的}
-上述实验都是基于整个训练集的人工标注的ROI数据来进行的，但是实际情况中拥有标注的医学图像数据集并不是很常见，大多数数据依然还是没有人工标注的。因此这个实验模拟了常见的实际使用情况，即只有少量的人工标注数据可用，用来解释在实际使用情况中为什么本章提出的方法可以让配准和分区任务互相帮助并获得比单独训练的模型高出很多的性能。本实验在训练集上随机选择并使用$N$个人工标注的皮层球面ROI数据来训练BL-Parc，BL-Reg和JRP-Net（JRP-w/SE-w/${\cal L}_{ps}$）。为了获得更可信的结果，我们对每个模型重复了10次实验（每次都是随机选取的$N$个球面）。图\ref{fig:jrp_dice}显示了在测试集上10次实验的平均结果。可以看到，在只有atlas拥有人工标注的ROI标签的极端情况下，即11个UNC 4D atlas\cite{li2015construction}，本章提出的JRP-Net方法仍然取得了不错的结果，相比独立训练的模型有很大的改进。这证明了配准任务确实为未标注的皮层表面提供反向配准的atlas的人工标记ROI图，用来扩充数据集，从而为分区任务提供了额外的半监督信息，在有些工作\cite{xu2019deepatlas}中这也叫做一种数据增强手段。反过来，可以看出即使使用预测的分区图来计算ROI分区的一致性，配准性能也能在分区任务的帮助下有所提升（当$N>3$）。同时我们还注意到，图\ref{fig:jrp_dice}中的JRP-Net的配准Dice和分区Dice的线条是高度重合的。对10次实验进行了显著性水平为0.05的配对t检验后，结果证实了配准和分区任务的Dice结果之间并没有显著性差异。这可能是因为两个任务相互引导训练，成功利用SE学习到了最优的皮层特征表达，然后两个任务特定的解码器都成功地找到了两个任务的最优解。图\ref{fig:jrp_registraionExamples}展示了一些来自测试集的实际配准案例，可以看到当前可用的配准方法都无法成功地将这些皮层表面对齐好，但使用本章提出的JRP-Net（$N$=50）却能得到非常好的对齐结果。这是因为当前方法的一个固有的内在缺陷，即它们只使用了特征相似性作为配准的目标函数，而本章开发的JRP-Net结合了ROI分区图相似性便可以有效地解决这个问题。
+展示了一些来自测试集的实际配准案例，可以看到当前可用的配准方法都无法成功地将这些皮层表面对齐好，但使用本章提出的JRP-Net（$N$=50）却能得到非常好的对齐结果。这是因为当前方法的一个固有的内在缺陷，即它们只使用了特征相似性作为配准的目标函数，而本章开发的JRP-Net结合了ROI分区图相似性便可以有效地解决这个问题。
 
 \section{讨论}
 首先，对于大脑皮层分区任务，我们知道医学图像的标注工作是十分繁琐耗时的，更别提在manifold空间的大脑皮层上进行手工ROI的标记，因此可以用于训练大脑皮层分区的ROI分区金标准在实际应用情况中非常地稀少。本章提出的同时配准与分区框架正是针对这一点，在只拥有极少数的人工标记好的大脑皮层ROI分区图的前提下，利用了近几年医学图像领域中流行的半监督分割方法，即使用配准网络先生成大多数没有人工标注的皮层的伪ROI分区图，再用这些生成的伪分区图一起训练分区网络。虽然这样的伪分区图肯定不如直接用人工标注的金标准好，但是它可以极大地节省人力物力财力，而且再加上本章开发的同时与配准算法训练的策略，最终获得了非常令人满意的分区结果。总结来讲，整个实验过程最关键的地方依然在于我们仅用了极少数的手动标记数据完成了非常高质量的分区模型训练，这对大脑皮层分区任务具有十分重要的意义。
@@ -985,13 +959,6 @@ RD模块利用了\ref{sec:基于三个正交球面U-Net的快速球面配准算�
 
 \section{本章小结}
 本章提出了JRP-Net用于皮层表面的同时配准和分区，利用了共享编码器和分区图相似性损失函数将这两个任务紧密地关联起来。通过利用两个任务之间的内在关系，本章开发的共享编码器可以有效地提取两个任务共享的更有意义的皮层高级特征，而分区图相似性损失函数则进一步地促进实现了两个任务之间的相互帮助、指导与训练。所有的实验结果，包括定量的和定性的，都表明本章提出的方法在配准和分区方面相比单独训练的配准和分区网络有很大的改进。这个改进对两个任务都具有非常重大的意义。
-
-\ifthenelse{\equal{\BlindReview}{true}}%
-        {
-        }
-        {
-        本章的部分工作已经整理好并提交到了国际医学图像计算与计算机辅助诊断会议（International Conference on Medical Image Computing and Computer Assisted Intervention, MICCAI）, 目前仍然在审稿状态（under review）。
-        }
 
 
 
@@ -1073,38 +1040,41 @@ RD模块利用了\ref{sec:基于三个正交球面U-Net的快速球面配准算�
 
 在这个实验中，对于没有配对数据的S2SGAN模型，我们设置$\alpha$为15，$\beta$为1，$\lambda$为0；对于有配对数据的S2SGAN模型，设置$\alpha$为15，$\beta$为1，$\lambda$为100。本实验使用了Adam优化器训练这两个模型，在前20个epoch中以0.0001的初始学习率交替学习$G$和$D$，在接下来的180个epoch中线性地将学习率降低至0，使用了70\%的数据作为训练集，剩余的30\%作为测试集，并采用了分层采样的方法确保同一个个体的不同时间点的数据都在同一个集合中，并且也确保了每个集合中的年龄分布尽可能地相似。本实验采用平均绝对误差（MAE）和峰值信噪比（Peak signal-to-noise ratio, PSNR）这两个广泛使用的相似性指标来定量地评估生成结果的好坏。
 
+本实验训练的S2SGAN模型把低质量中心$Y$的皮层厚度数据映射到了高质量中心$X$上，从而完成了在中心$X$的域内结合了所有的皮层厚度数据。平均而言，默认S2SGAN模型获得的MAE结果为0.093$\pm$0.011mm，PSNR为31.48$\pm$1.12（标准差是基于所有皮层结果的）。使用了配对数据并利用配对数据损失函数来训练的S2SGAN（paired）模型达到了MAE 0.082$\pm$0.018mm，PSNR 33.09$\pm$1.73的结果，这个代表了S2SGAN所能达到的最佳效果。相比之下，使用Combat的官方代码，以年龄和性别作为统计协变量，获得的结果为MAE 0.124$\pm$0.014mm和PSNR 29.00$\pm$1.02。总的来说，本章开发的S2SGAN在MAE和PSNR方面都实现了比Combat更好的性能，并且也产生了与S2SGAN（paired）更接近的结果。图\ref{fig:s2sgan_paired_result}
 \begin{figure}[h]
 	\centering
 	\includegraphics[width=\linewidth]{figure/s2sgan_paired_result.eps}
 	\caption{在一个测试对象上使用不同数据结合方法得到的结果比较。前四列是S2SGAN模型的结果。最后两列是Combat的结果。注意Combat将两个中心结合为一个中间中心，因此最优的结果应该是在最后两列生成两个非常一致的皮层表面。}\label{fig:s2sgan_paired_result} 
 \end{figure} 
-
-本实验训练的S2SGAN模型把低质量中心$Y$的皮层厚度数据映射到了高质量中心$X$上，从而完成了在中心$X$的域内结合了所有的皮层厚度数据。平均而言，默认S2SGAN模型获得的MAE结果为0.093$\pm$0.011mm，PSNR为31.48$\pm$1.12（标准差是基于所有皮层结果的）。使用了配对数据并利用配对数据损失函数来训练的S2SGAN（paired）模型达到了MAE 0.082$\pm$0.018mm，PSNR 33.09$\pm$1.73的结果，这个代表了S2SGAN所能达到的最佳效果。相比之下，使用Combat的官方代码，以年龄和性别作为统计协变量，获得的结果为MAE 0.124$\pm$0.014mm和PSNR 29.00$\pm$1.02。总的来说，本章开发的S2SGAN在MAE和PSNR方面都实现了比Combat更好的性能，并且也产生了与S2SGAN（paired）更接近的结果。图\ref{fig:s2sgan_paired_result}直观地显示了不同方法在一个随机选取的测试对象上的数据结合结果的定量比较。
+直观地显示了不同方法在一个随机选取的测试对象上的数据结合结果的定量比较。
 
 
 \subsection{真实的皮层表面数据结合实验与结果}
 为了证明本章的方法在实际的多中心皮层表面数据结合上的优势，本小节实验采用了两个真正的纵向长期婴儿数据集。这两个数据集拥有匹配的人口统计信息，即年龄范围相似，年龄分布也相似。其中中心$X$依然还是在\ref{sec:Synthetic}中使用的$X$中心的数据，而中心$Y$是来自Multi-visit Advanced Pediatric (MAP)数据库的50个婴儿的251个不同时间点的MRI扫描数据。MAP数据集使用了一台Siemens Trio扫描仪以$1\times 1\times 1mm^3$的分辨率采集得到。因此这两个数据集之间不可避免地会存在扫描仪影响，这个实验的目的即是利用本章提出的S2SGAN模型学习并消除这种扫描仪影响，同时还要保留相关的生物学差异。我们使用了和\ref{sec:Synthetic}中相同的预处理方式以及同样的超参数训练得到了最终的S2SGAN模型。
 
-\begin{figure}[t]
+
+
+
+\subsubsection{验证是否消除了扫描仪影响}
+因为真实采集的数据并没有配对的数据，即一个受试者一般只在一个中心的一台扫描仪上进行数据采集，所以我们无法知道这些受试者在另一台扫描仪上采集得到的数据是什么样的。也就是说，无配对数据是没有金标准来衡量一个生成结果的好坏的。因此，本小节使用了与以往方法\cite{karayumak2019retrospective}相同的评价指标来执行基于ROI的分析，验证是否去除了扫描仪效应。理论上，在年龄分布相匹配的情况下，数据结合后，映射到另一个中心的数据应该达到与目标中心数据相一致的平均ROI皮层厚度值。图\ref{fig:s2sgan_roi_bar_realA_realB_fakeA}
+\begin{figure}[h]
 \centering
 \includegraphics[width=\linewidth]{figure/s2sgan_roi_bar_realA_realB_fakeA.eps}
 \caption{数据结合前后不同采集中心的大脑皮层厚度数据分布。横轴为每个ROI的名称，纵轴为ROI的平均皮层厚度值。}\label{fig:s2sgan_roi_bar_realA_realB_fakeA} 
-\end{figure} 
-
-\begin{figure}[t]
+\end{figure}
+显示了中心$X$、中心$Y$和结合后中心$Y$的36个ROI的平均厚度值。可以看到ROI厚度的统计显著性差异在结合前是存在的，而在结合后都被成功地消除了。另外，我们还使用了Fortin等人在Combat\cite{fortin2018harmonization}工作中采用的评价方法，即对site $X$ + site $Y$ + 结合后的$Y$的vertex-wise的皮层厚度数据使用主成分分析法（Principal component analysis, PCA）进行无监督降维。然后把投影到前两维的主成分值画在了图\ref{fig:s2sgan_pca}
+\begin{figure}[h]
 \centering
 \includegraphics[width=\linewidth]{figure/s2sgan_pca.eps}
 \caption{采用PCA对中心$X$+中心$Y$+映射到$X$中心的$Y$数据进行降维的结果，其中$x$轴为第一主成分，$y$轴为第二主成分。灰色的线代表映射前后同一个皮层数据的对应关系。}\label{fig:s2sgan_pca} 
 \end{figure} 
-
-\subsubsection{验证是否消除了扫描仪影响}
-因为真实采集的数据并没有配对的数据，即一个受试者一般只在一个中心的一台扫描仪上进行数据采集，所以我们无法知道这些受试者在另一台扫描仪上采集得到的数据是什么样的。也就是说，无配对数据是没有金标准来衡量一个生成结果的好坏的。因此，本小节使用了与以往方法\cite{karayumak2019retrospective}相同的评价指标来执行基于ROI的分析，验证是否去除了扫描仪效应。理论上，在年龄分布相匹配的情况下，数据结合后，映射到另一个中心的数据应该达到与目标中心数据相一致的平均ROI皮层厚度值。图\ref{fig:s2sgan_roi_bar_realA_realB_fakeA}显示了中心$X$、中心$Y$和结合后中心$Y$的36个ROI的平均厚度值。可以看到ROI厚度的统计显著性差异在结合前是存在的，而在结合后都被成功地消除了。另外，我们还使用了Fortin等人在Combat\cite{fortin2018harmonization}工作中采用的评价方法，即对site $X$ + site $Y$ + 结合后的$Y$的vertex-wise的皮层厚度数据使用主成分分析法（Principal component analysis, PCA）进行无监督降维。然后把投影到前两维的主成分值画在了图\ref{fig:s2sgan_pca}中。图\ref{fig:s2sgan_boxplot}显示了分别来自中心$X$、中心$Y$和结合后的$Y$的100个样本的vertex-wise的皮层厚度箱形图。在这个图中，我们按分层采样的方法随机选择了100个样本的数据并按年龄由小到大地进行排列。综上，所有结果都验证了本章提出的方法不仅实现了将源中心的数据成功结合到目标中心，还同时很好地保留了个体差异。
-
-\begin{figure}[t]
+中。图\ref{fig:s2sgan_boxplot}
+\begin{figure}[h]
 \centering
 \includegraphics[width=\textwidth]{figure/s2sgan_boxplot.eps}
 \caption{不同中心的100个样本的vertex-wise的皮层厚度箱形图。每一个箱形图代表一个样本。每一个中心都有100个分层采样的样本并在中心内的按年龄由小到大地排序。}\label{fig:s2sgan_boxplot} 
 \end{figure} 
+显示了分别来自中心$X$、中心$Y$和结合后的$Y$的100个样本的vertex-wise的皮层厚度箱形图。在这个图中，我们按分层采样的方法随机选择了100个样本的数据并按年龄由小到大地进行排列。综上，所有结果都验证了本章提出的方法不仅实现了将源中心的数据成功结合到目标中心，还同时很好地保留了个体差异。
 
 \subsubsection{验证是否保留了组间差异}
 这一小节采用了Karayumak等人\cite{karayumak2019retrospective}文中也使用的Cohen's d指标来评价不同年龄组之间差异的保留情况。Cohen's d的定义是：
@@ -1117,27 +1087,19 @@ RD模块利用了\ref{sec:基于三个正交球面U-Net的快速球面配准算�
 \end{equation}
 其中$N_g$是组的数量，$d_{ij}^{before}$和$d_{ij}^{after}$分别代表了数据结合前后的Cohen's d。因此，较小的$\Delta d$一般代表较好的组间差异保留。为了与Combat方法进行比较，我们使用了Combat的官方代码，把年龄作为协变量，得到的$\Delta d$结果为0.2069$\pm$0.1467，而S2SGAN获得了$\Delta d=$0.0683$\pm$0.0520的结果。由此我们可以得出结论，本章提出的方法在将多中心的数据结合后可以更好地保留不同数据组之间的差异性。特别地，在这个实验中，更好地保留了不同年龄组之间的皮层厚度数据的差异性，对于后续的联合分析大脑皮层属性发育与疾病的关系非常有帮助。
 
-\begin{figure}[t]
+\subsubsection{验证是否保留了个体差异}
+同样地因为没有配对数据，本小节使用了别人曾经使用过的证实为有效的指标来衡量数据结合前后个体差异有没有被保留。像Huynh等人\cite{huynh2019multi}的工作一样，本小节也使用ROI特征值来计算任意两个样本之间的欧式距离，从而形成一个距离矩阵，表示为${\bf{E}}_{ij}^{n \times n}{\rm{ = }}{\left\| {{F_i} - {F_j}} \right\|_{\rm{2}}}$，其中$n$是样本个数，$F$是皮层厚度特征向量。与Huynh等人\cite{huynh2019multi}唯一不同的是我们使用的是ROI-wise的皮层厚度平均值，而不是subject-wise的皮层厚度中位值来计算距离矩阵，因为我们的目的是估计在数据结合前后每两个样本之间的距离的相对保留情况。因此，我们随后计算了数据结合前后两个距离矩阵的相关性$Cor$。然后同样与使用了年龄和性别作为协变量的Combat方法进行了比较。最后结果显示，本章开发的S2SGAN获得的$Cor$为0.9766，而Combat的$Cor$为0.9606。较高的$Cor$验证了本章提出的方法在将多中心的数据结合后更好地保留了个体差异。最后，图\ref{fig:s2sgan_examples}
+\begin{figure}[h]
 	\centering
 	\includegraphics[width=\linewidth]{figure/s2sgan_examples.eps}
 	\caption{S2SGAN对两个年龄相匹配的测试样本进行皮层厚度结合的可视化结果。}\label{fig:s2sgan_examples}
-\end{figure} 
-	
-\subsubsection{验证是否保留了个体差异}
-同样地因为没有配对数据，本小节使用了别人曾经使用过的证实为有效的指标来衡量数据结合前后个体差异有没有被保留。像Huynh等人\cite{huynh2019multi}的工作一样，本小节也使用ROI特征值来计算任意两个样本之间的欧式距离，从而形成一个距离矩阵，表示为${\bf{E}}_{ij}^{n \times n}{\rm{ = }}{\left\| {{F_i} - {F_j}} \right\|_{\rm{2}}}$，其中$n$是样本个数，$F$是皮层厚度特征向量。与Huynh等人\cite{huynh2019multi}唯一不同的是我们使用的是ROI-wise的皮层厚度平均值，而不是subject-wise的皮层厚度中位值来计算距离矩阵，因为我们的目的是估计在数据结合前后每两个样本之间的距离的相对保留情况。因此，我们随后计算了数据结合前后两个距离矩阵的相关性$Cor$。然后同样与使用了年龄和性别作为协变量的Combat方法进行了比较。最后结果显示，本章开发的S2SGAN获得的$Cor$为0.9766，而Combat的$Cor$为0.9606。较高的$Cor$验证了本章提出的方法在将多中心的数据结合后更好地保留了个体差异。最后，图\ref{fig:s2sgan_examples}显示了两个年龄相匹配的测试样本的皮层厚度结合结果。我们可以看到无论是个体还是年龄组之间的差异都得到了很好的保留。
-
-\section{本章小结}
-这一章提出了一种基于球面U-Net和CycleGAN的新型球面神经网络用于皮层属性数据结合，称作S2SGAN网络。利用深度学习的强大能力，S2SGAN成功地学习了从一个中心到另一个中心皮层属性数据的复杂映射关系。S2SGAN方法已经在婴儿大脑MRI的合成配对数据和真实的非配对数据上得到了广泛的验证。定量的和定性的结果都表明了其消除不同中心数据之间的扫描仪差异的优越能力，同时还能很好地保留了个体与组间差异。
+\end{figure}
+显示了两个年龄相匹配的测试样本的皮层厚度结合结果。我们可以看到无论是个体还是年龄组之间的差异都得到了很好的保留。
 
 需要指出，本章提出的方法适用于任意两个中心采集到的神经影像数据的结合，但是对于每两个中心数据的相互结合，我们都需要重新训练或者微调模型。这在一些小规模的神经影像数据处理与研究计划中，对于比较少量的中心或扫描仪个数来说，还可以接受，但是很明显如果中心数目变多，我们需要花费的时间精力以及存储计算资源都会大幅增加。这是本章方法的一个局限性所在，也是我们未来的研究方向之一。解决这个问题的一个可能的方法便是让网络中的生成器可以自由选择生成的目标中心，由此来设计一个多中心的数据生成与结合网络。我们将在\ref{sec:总结与展望}的工作展望中对此进行详细叙述。
 
-\ifthenelse{\equal{\BlindReview}{true}}%
-        {
-        }
-        {
-        本章的部分工作已经发表在了2019年的国际医学图像计算与计算机辅助诊断会议（International Conference on Medical Image Computing and Computer Assisted Intervention, MICCAI 2019）上，并在会上进行了口头报告与海报展示。
-        }
-        
+\section{本章小结}
+这一章提出了一种基于球面U-Net和CycleGAN的新型球面神经网络用于皮层属性数据结合，称作S2SGAN网络。利用深度学习的强大能力，S2SGAN成功地学习了从一个中心到另一个中心皮层属性数据的复杂映射关系。S2SGAN方法已经在婴儿大脑MRI的合成配对数据和真实的非配对数据上得到了广泛的验证。定量的和定性的结果都表明了其消除不同中心数据之间的扫描仪差异的优越能力，同时还能很好地保留了个体与组间差异。
 
 
 
@@ -1159,21 +1121,21 @@ RD模块利用了\ref{sec:基于三个正交球面U-Net的快速球面配准算�
 
 \textbf{一、基于球面U-Net的皮层分区与属性预测。}本论文首先利用大脑皮层固有的球形拓扑结构将大脑皮层映射到标准球面空间，然后再利用重采样后的大脑皮层表面的一致的正二十面体离散化球面结构，提出了一种新型的直观的自然的球面卷积滤波器，即1-ring卷积核。1-ring卷积核的定义与正二十面体的膨胀和收缩过程一致，其中的每个顶点在每次迭代过程中都会在其邻域中传播或聚合信息，因此能够通过多层次的网络结构有效地学习球面数据的特征并为所学的特征提供可靠的可解释性。基于这个新的球面卷积滤波器，我们开发了球面空间的球面卷积、池化和转置卷积，以及其升级版本可变形卷积与池化等操作。据此，本论文将流行的U-Net结构\cite{ronneberger2015u}从图像领域扩展到球面领域，搭建了球面U-Net结构及其升级版本球面可变形U-Net（SDU-Net）。
 
-然后我们在两个具有挑战性的大脑皮层数据分析任务上验证了球面U-Net结构的有效性，即大脑皮层分区与皮层属性发育预测。这两个任务都具有重要的神经科学研究和临床诊断的意义，并且目前都受限于复杂耗时的人工特征的设计与提取，以及繁重的机器学习分类器或回归器的计算负担。这是因为它们都是vertex-wise的密集分类或回归问题，需要学习并预测复杂的非线性的皮层特征到vertex-wise的分区标签或顶点属性值的映射。在这两个任务中，本论文提出的球面U-Net与目前最好的算法相比，取得了更好的性能，不管是定量还是定性的结果，不管在精度上还是计算效率上，都展示了目前领域内最好的结果。这表明本论文提出的球面U-Net是一个与任务和特征无关的通用鲁棒的深度学习模型，在不同的任务中都能够自动学习到针对不同任务的有用的特征。
+然后在两个具有挑战性的大脑皮层数据分析任务上验证了球面U-Net结构的有效性，即大脑皮层分区与皮层属性发育预测。这两个任务都具有重要的神经科学研究和临床诊断的意义，并且目前都受限于复杂耗时的人工特征的设计与提取，以及繁重的机器学习分类器或回归器的计算负担。这是因为它们都是vertex-wise的密集分类或回归问题，需要学习并预测复杂的非线性的皮层特征到vertex-wise的分区标签或顶点属性值的映射。在这两个任务中，本论文提出的球面U-Net与目前最好的算法相比，取得了更好的性能，不管是定量还是定性的结果，不管在精度上还是计算效率上，都展示了目前领域内最好的结果。这表明本论文提出的球面U-Net是一个与任务和特征无关的通用鲁棒的深度学习模型，在不同的任务中都能够自动学习到针对不同任务的有用的特征。
 
 \textbf{二、针对大脑皮层表面配准，本论文提出了基于三个正交球面U-Net的快速球面配准算法。}皮层表面配准是基于皮层表面的神经影像分析的一个重要步骤和先决条件。它将不同个体和时间点的皮层表面对齐，以建立横向跨个体和纵向跨时间的皮层对应关系，从而方便后续的比较分析，比如群体之间的横向比较或时间上的纵向发育研究。目前的大脑皮层表面配准算法虽然取得了不错的性能，但这些方法有两大局限性：（1）不能够灵活地扩展到多模态的皮层特征。因为复杂的皮层区域与微观结构、功能区域高度相关，基于多模态皮层特征的配准才可以实现更有意义的跨个体和年龄的配准；（2）速度慢，耗时长。现有的方法通常被设计为优化每对皮层球面之间的目标函数问题，这在计算上是非常低效的，因此在处理大规模神经影像数据时，计算成本的增加越来越成为后续分析的一个阻碍。
 
-为了解决这些问题，本论文提出了第一个基于学习的皮层表面配准框架，称为快速球面配准（S3Reg）算法。首先，为了使用多模态皮层特征来进行配准，S3Reg采用了端到端的无监督学习模式，从而在输入特征和输出相似度指标的选择上提供了很大的灵活性；其次，为了加快配准过程，S3Reg的目标是从整个数据集中学习一个全局配准函数来配准任意一对球面数据，从而得到一个简化但高效的单一配准模型，可以快速地得到任意一对新的球面数据的球面变形场。本论文使用了三个正交球面U-Net来对这个配准模型进行建模，并使用由6个“缩放和平方”层组成的球面变换层来移动球面。因为网络中的所有层都是定义良好的且可微分的，因此可以通过反向传播梯度有效地学习网络参数。本论文在基于图谱的配准任务中使用了成人和婴儿数据集进行了配准实验，与目前最好的配准算法相比，S3Reg获得了相当不错的大脑皮层配准精度，但同时要运行地快得多，配准一对球面数据的时间不到10秒，而以往最快的Spherical Demons算法需要大约1分钟。这使得本论文提出的方法会成为大规模神经影像数据配准的首选，对整个基于脑皮层的数据处理与分析pipeline的速度提升具有非常重要的意义。
+为了解决这些问题，本论文提出了一个基于学习的皮层表面配准框架，称为快速球面配准（S3Reg）算法。首先，为了使用多模态皮层特征来进行配准，S3Reg采用了端到端的无监督学习模式，从而在输入特征和输出相似度指标的选择上提供了很大的灵活性；其次，为了加快配准过程，S3Reg的目标是从整个数据集中学习一个全局配准函数来配准任意一对球面数据，从而得到一个简化但高效的单一配准模型，可以快速地得到任意一对新的球面数据的球面变形场。本论文使用了三个正交球面U-Net来对这个配准模型进行建模，并使用由6个“缩放和平方”层组成的球面变换层来移动球面。因为网络中的所有层都是定义良好的且可微分的，因此可以通过反向传播梯度有效地学习网络参数。本论文在基于图谱的配准任务中使用了成人和婴儿数据集进行了配准实验，与目前最好的配准算法相比，S3Reg获得了相当不错的大脑皮层配准精度，但同时要运行地快得多，配准一对球面数据的时间不到10秒，而以往最快的Spherical Demons算法需要大约1分钟。这使得本论文提出的方法会成为大规模神经影像数据配准的首选，对整个基于脑皮层的数据处理与分析pipeline的速度提升具有非常重要的意义。
 
-\textbf{三、用于同时皮层配准与分区的新型深度球面网络模型。}虽然上面两个工作在各自的任务中都取得了非常好的效果，但是由此也可以看出大脑皮层表面配准和分区一直以来都是作为两个任务分开单独进行的。传统上来讲，一般都是先进行皮层表面配准再使用配准后的球面特征进行皮层分区，但是这种做法明显忽略了这两个密切相关的任务之间的内在联系。从根本上来说，这两个任务都依赖于有意义的皮层特征的学习与表达，所以它们可以通过学习共享的皮层特征来同时优化它们的网络参数。
+\textbf{三、用于同时皮层配准与分区的新型深度球面网络模型。}虽然上面两个工作在各自的任务中都取得了非常好的效果，但是也可以看出大脑皮层表面配准和分区一直以来都是作为两个任务分开单独进行的。传统上，一般都是先进行皮层表面配准再使用配准后的球面特征进行皮层分区，但是这样明显忽略了这两个密切相关的任务之间的内在联系。根本上讲，这两个任务都依赖于有意义的皮层特征的学习，所以它们可以通过学习共享的皮层特征来同时优化它们的网络参数。
 
 为此，本论文首次研究探讨了基于球面神经网络的同时大脑皮层配准和分区的想法。本论文提出的同时配准与分区网络（JRP-Net）利用了这两个任务之间的内在固有联系，在方法上提出了两个主要的创新点，即共享编码器和新的ROI分区图相似性损失函数。它们都以合理的方式提升了这两个任务的性能。首先，共享编码器利用了这两个任务之间的内在密切关系学习了两个任务的共同特征。然后，JRP-Net分别为配准和分区任务训练了两个特定的任务解码器，并进一步利用这两个任务之间的明确联系，整合进ROI分区图相似性损失函数，强制要求预测的ROI与固定的人工标记的ROI相匹配，从而为配准任务提供额外的监督信息。反过来，分区网络训练也受益于配准任务，因为将一个带有手工标记ROI的球面配准到另一个没有手工标注的球面后，就为分区任务提供了大量额外的训练数据。因此，与单独训练的网络相比，这两个任务可以相互指导训练，相互提升对方的性能。这种互相帮助特别是在只有少数手动标记的数据可用时，对于分区和配准任务都有着巨大的提升。本论文在600多个皮层表面数据上进行了实验，定量和定性的结果都表明，本论文提出的JRP-Net在分区和配准精度上都取得了很大的进步。特别地，当只有少量人工标注的球面数据可用时，JRP-Net依然训练得到了高质量的分区和配准模型。
 
 \textbf{四、基于球面U-Net的多中心皮层属性数据结合方法。}越来越多的大规模多中心的神经影像数据集促进了我们对早期大脑发育的理解以及神经退行性疾病的认识。这些大规模神经影像数据集拥有着巨大的样本数量，因此可以产生更强的统计能力以及更可靠的研究结果。然而，多中心的皮层属性（如皮层厚度）的联合分析不可避免地会引入由于MRI扫描仪差异导致的非生物学偏差。为了解决这个问题，本论文提出了基于球形皮层表面的循环一致性对抗网络，用来结合不同扫描仪之间的皮层厚度数据。具体来讲，本论文将球面U-Net和CycleGAN结合起来，构建了映射一个球面数据到另一个球面数据的S2SGAN网络。S2SGAN将从扫描仪$X$到扫描仪$Y$的数据结合建模为球面到球面的数据映射问题。然后，数据结合的第一个目标是学习一个映射$G_X:X\rightarrow Y$，使得$G_X(X)$的球面皮层厚度图分布与$Y$无法区分。由于这个映射是高度不受约束的，考虑到数据结合的第二个目标是保留个体差异，因此S2SGAN利用逆映射$G_Y:Y\rightarrow X$和循环一致性损失来要求$G_Y(G_X(X))\approx X$（反之亦然）。此外，本论文还加入了相关系数损失用来训练S2SGAN，以保证原始的和生成的球面厚度图之间的结构一致性。在合成的和真实的婴儿大脑皮层数据上的定量和定性结果都表明，与目前最好的方法相比，本论文提出的方法不仅在消除不必要的扫描仪影响上具有更加优越的能力，而且同时还可以更好地保留个体差异以及组间差异。
 
 
-\section{未来工作展望}
-本论文开发的每一个改进脑皮层数据处理与分析pipeline的方法尽管十分有效，但在某些方面仍然存在一些局限性以及有待改进的地方。我们都知道事物的发展总是处于一个螺旋式上升或波浪式前进的过程。因此在这最后一小节，我们针对本论文研究工作的局限性，对未来的研究方向做如下展望。
+\section{本论文工作的不足之处}
+本论文开发的每一个改进脑皮层数据处理与分析pipeline的方法尽管十分有效，但在某些方面仍然存在一些局限性以及有待改进的地方。
 
 \textbf{一、球面U-Net的改进方向。}本论文扩展到球面上的很多深度学习技术都是类比2D图像中传统的卷积、池化和上采样操作。因此传统卷积神经网络所具有的平移不变性扩展到球面上以后，就变成了球面上的旋转不变性。在本论文定义了球面上的参考方向，即$z$轴以后，球面上的旋转不变性就变为仅有的绕$z$轴的旋转不变性了。也就是说训练好的卷积核只能在绕$z$轴旋转的方向上检测到同样的模式，而如果球面绕其他轴旋转，那么之前训练好的卷积核便不能成功地检测到相应的模式，这是近几年来很多研究者也在关注的一个问题\cite{esteves2018learning,cohen2018spherical,cohen2019gauge}，即怎样实现球面网络的任意方向的旋转不变性。然而根据我们的经验，具有任意方向旋转不变性的网络在大脑皮层数据的处理上也是不适用的，因为那样检测到的模式必然是全局的，而且容易发生“6”“9”混淆的问题，而大脑皮层上的很多应用要求vertex-wise的预测结果，因此我们仍然需要首选确立一个参考方向。
 
@@ -1187,8 +1149,16 @@ RD模块利用了\ref{sec:基于三个正交球面U-Net的快速球面配准算�
 
 （3）把训练好的模型应用于跨群体跨年龄的数据集上，验证并提升本论文方法的跨数据集的鲁棒性与泛化能力。
 
-\textbf{三、多中心的皮层属性数据结合。}本论文提出的S2SGAN网络已经成功证明了其在皮层表面属性数据结合上的可行性。它结合了球面U-Net和CycleGAN，学习从一个中心到另一个中心的皮层厚度图的复杂映射，并显示出比传统的统计工具更加优越的性能。然而，S2SGAN的局限性在于它只能使用一个模型结合两个中心的数据，因为S2SGAN中的生成器被训练成学习一个中心到另一个中心的固定映射。随着需要结合的中心数目越来越多，这在实际操作过程中会造成很大的计算资源浪费，因为为了结合$k$个中心的数据，必须训练$k(k-1)$个生成器。此外，每个生成器只能学习$k$个中心中的两个中心的映射函数，这妨碍了生成器网络从整个多中心数据中学习全局特征的表达。
+\textbf{三、多中心的皮层属性数据结合。}本论文提出的S2SGAN网络已经成功证明了其在皮层表面属性数据结合上的可行性。它结合了球面U-Net和CycleGAN，学习从一个中心到另一个中心的皮层厚度图的复杂映射，并显示出比传统的统计工具更加优越的性能。然而，它的局限性在于它只能使用一个模型结合两个中心的数据，因为S2SGAN中的生成器被训练成学习一个中心到另一个中心的固定映射。随着需要结合的中心数目越来越多，这在实际操作过程中会造成很大的计算资源浪费，因为结合$k$个中心的数据，必须训练$k(k-1)$个生成器。此外，每个生成器只能学习$k$个中心中的两个中心的映射函数，这妨碍了生成器网络从整个多中心数据中学习全局特征的表达。
 
-为了解决这个问题，一个可能的未来研究方向是使用多域图像转换技术，比如starGAN\cite{choi2018stargan}。我们可以基于球面U-Net的框架将starGAN模型扩展到球面空间，并搭建相应的球面starGAN。球面starGAN可以同时接收皮层属性数据和目标中心信息作为输入，并通过单个生成器学习将源皮层属性图灵活地映射到给定的目标中心。具体来说，该方法的目标是训练一个单一的生成器$G$，将输入的皮层属性图$x$映射到给定的中心$c$，即$G(x,c)\rightarrow y$。为了实现这一目标，可以使用对抗式学习策略\cite{goodfellow2014generative}训练一个判别器$D:x\rightarrow \{D_{src}(x),D_{cls}(x)\}$，分别用来产生来源中心$D_{src}(x)$和中心标签$D_{cls}(x)$的概率分布，分别用于分类真实的和生成的球面数据，以及分类球面数据来自哪个中心。然后再使用与\ref{sec:基于球面U-Net的多中心皮层属性数据结合方法}类似的对抗性损失函数、循环一致性损失函数以及相关系数损失函数来训练starGAN。由此，便可以成功得到训练好的球面starGAN模型，使得多中心皮层表面属性数据的结合只需要使用一个生成器，从而提高大规模神经影像研究中多中心数据结合的效率和灵活性。
+为了解决这个问题，未来研究方向是使用多域图像转换技术，比如starGAN\cite{choi2018stargan}。可以基于球面U-Net的框架将starGAN模型扩展到球面空间，并搭建相应的球面starGAN。球面starGAN可以同时接收皮层属性数据和目标中心信息作为输入，并通过单个生成器学习将源皮层属性图灵活地映射到给定的目标中心。具体来说，该方法的目标是训练一个单一的生成器$G$，将输入的皮层属性图$x$映射到给定的中心$c$，即$G(x,c)\rightarrow y$。为了实现这一目标，可以使用对抗式学习策略\cite{goodfellow2014generative}训练一个判别器$D:x\rightarrow \{D_{src}(x),D_{cls}(x)\}$，分别用来产生来源中心$D_{src}(x)$和中心标签$D_{cls}(x)$的概率分布，分别用于分类真实的和生成的球面数据，以及分类球面数据来自哪个中心。然后再使用与\ref{sec:基于球面U-Net的多中心皮层属性数据结合方法}类似的对抗性损失函数、循环一致性损失函数来训练starGAN。由此，使得多中心皮层表面属性数据的结合只需要使用一个生成器，从而提高大规模神经影像研究中多中心数据结合的效率和灵活性。
 
-\textbf{四、整理并发布模型以及相关工具包。}在不久的将来，我们会将自己的工作整理好，即代码与说明文档等，打包好并上传到公共网站，与整个研究领域分享本论文提出的算法与模型。我们相信本论文的方法以及相关的工具包可以极大地促进大脑皮层表面的分区、配准、发育预测以及多中心数据结合等任务，从而完善整个大脑皮层表面数据处理与分析的pipeline，促进后续大规模神经影像学的研究。
+
+\section{未来工作展望}
+随着当代科学技术的发展，人类认识并解决了很多医学难题，但是大脑作为人类的核心器官，其关键的发育与神经性疾病的发病机制仍然是一个巨大的挑战。大脑与神经疾病的研究之所以这么难，一大原因便是活体解剖的不方便与不现实，当代科研人员只能借助MRI等无创技术来观察研究相关疾病的演变。然而受限于CT、MRI等机器的分辨率与对比度等问题，大脑的神经影像很难提供超过活体解剖的精细信息。因此，精准快速地处理好MRI扫描仪采集的数据，尽可能完整地反映原始大脑活动的信息，最大化利用采集的信息，对于后续研究发育与疾病至关重要。本论文聚焦于MR结构图像的预处理，提出了更加高效准确的皮层分区、配准等方法，为后续脑科学研究提供了稳固的基石。目前我们已经将自己的工作整理好，即代码与说明文档等，打包好并上传到了公共网站（https://github.com/zhaofenqiang/SphericalUNetPackage），与整个研究领域分享本论文的成果。相信本论文的方法以及相关的工具包可以极大地促进大脑皮层表面的分区、配准、发育预测以及多中心数据结合等任务，从而完善整个大脑皮层表面数据处理与分析的pipeline，促进未来以下几方面的大规模神经影像学的研究。
+
+\textbf{一、早期脑发育轨迹的建模。}在采集了大规模婴幼儿的大脑MRI数据并使用本论文开发的工具进行后处理后，科研人员可以很容易地利用一些基础的数学工具对相关大脑皮层属性进行建模分析，从而建立早起脑发育的轨迹图谱。比如说与很多疾病息息相关的大脑皮层厚度属性，可以使用回归模型拟合大脑皮层厚度的发育轨迹，制定正常的大脑发育图谱，从而为大脑发育提供一个参考模板。因此，作为一个参考模板，这对数据处理的准确性提出了很高的要求，以往很多的神经影像处理工具包粗糙的结果可能会影响正常大脑发育轨迹模板的建立，尤其是错误的配准结果很有可能导致关键区域皮层属性的计算错误。这也正体现了本论文精准快速的神经影像数据处理方法的优越性。
+
+\textbf{二、异常脑发育的检测与诊断。}在建立了正常的大脑早期发育轨迹后，如果有一个婴儿早期脑发育的完整数据，便可以很容易地比较其与正常的发育轨迹之间的差异，从而检测异常脑发育并给临床医生提供诊断依据。然而对于临床的意义，更重要的还是在于早期诊断，即只使用一部分数据便可以预测大脑发育的轨迹并提前检测出异常，这依然是一个具有挑战性的难题。一个可能的未来工作方向是使用高级的数学建模工具或深度学习方法自动学习建模大脑的发育轨迹，在大数据的驱动下训练一个精细的脑发育预测模型，从而能够提前检测出微小的发育异常。
+
+\textbf{三、神经退行性疾病的早期诊断。}神经退行性疾病的大规模研究目前已经有很多了，但依然受限于数据处理工具的速度与精度。未来期望使用本论文开发的工具包快速准确地处理完神经影像数据后，能够进一步地促进世界范围内的大规模神经退行性疾病研究。国内在近几年也开始了很多脑计划，用于研究大脑的奥秘，其中有一部分便是诸如阿尔茨海默症、帕金森病的早期生物标记的检测与诊断，对此科研人员可以使用本论文开发的球面神经网络来自动学习和寻找有意义的早期生物学影像标记，从而为这些疾病的早期预防与诊断提供重要的影像学依据。
